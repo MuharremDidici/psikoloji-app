@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Test Sonuçlarım</h2>
+    
+    {% if results %}
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+            {% for result in results %}
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ result.test_name }}</h5>
+                        <p class="card-text text-muted">{{ result.description }}</p>
+                        
+                        <div class="progress mb-3">
+                            <div class="progress-bar {% if result.score >= 75 %}bg-danger{% elif result.score >= 50 %}bg-warning{% else %}bg-success{% endif %}"
+                                role="progressbar"
+                                style="width: {{ result.score }}%"
+                                aria-valuenow="{{ result.score }}"
+                                aria-valuemin="0"
+                                aria-valuemax="100">
+                                {{ result.score }}%
+                            </div>
+                        </div>
+
+                        <div class="alert {% if result.score >= 75 %}alert-danger{% elif result.score >= 50 %}alert-warning{% else %}alert-success{% endif %} mb-3">
+                            <h6 class="alert-heading">
+                                {% if result.score >= 75 %}
+                                    Yüksek Risk
+                                {% elif result.score >= 50 %}
+                                    Orta Risk
+                                {% else %}
+                                    Düşük Risk
+                                {% endif %}
+                            </h6>
+                            <p class="mb-0">
+                                {% if result.score >= 75 %}
+                                    Profesyonel yardım almanızı öneririz.
+                                {% elif result.score >= 50 %}
+                                    Bazı belirtiler gösteriyorsunuz. Bir uzmana danışmayı değerlendirebilirsiniz.
+                                {% else %}
+                                    Şu an için belirgin bir risk görünmüyor.
+                                {% endif %}
+                            </p>
+                        </div>
+
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-calendar-alt me-2"></i>{{ result.date }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <h4 class="alert-heading">Henüz test sonucunuz bulunmuyor</h4>
+            <p class="mb-0">Psikolojik değerlendirme testlerimizi deneyerek kendinizi daha iyi tanıyabilirsiniz.</p>
+            <hr>
+            <a href="{{ url_for('tests') }}" class="btn btn-primary">
+                <i class="fas fa-clipboard-list me-2"></i>Testlere Git
+            </a>
+        </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('tests') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Yeni Test Yap
+        </a>
+    </div>
+</div>
+
+<!-- Chart.js kütüphanesini ekle -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Her bir test sonucu için grafik oluştur
+    {% if results %}
+        {% for result in results %}
+            const ctx{{ loop.index }} = document.getElementById('chart{{ loop.index }}');
+            if (ctx{{ loop.index }}) {
+                new Chart(ctx{{ loop.index }}, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Risk Seviyesi', 'Normal'],
+                        datasets: [{
+                            data: [{{ result.score }}, {{ 100 - result.score }}],
+                            backgroundColor: [
+                                {% if result.score >= 75 %}
+                                    '#dc3545'
+                                {% elif result.score >= 50 %}
+                                    '#ffc107'
+                                {% else %}
+                                    '#28a745'
+                                {% endif %},
+                                '#e9ecef'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+        {% endfor %}
+    {% endif %}
+});
+</script>
+{% endblock %}

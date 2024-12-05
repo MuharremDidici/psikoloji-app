@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mt-5">Yeni Randevu Ekle</h1>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="name" class="form-label">Ad</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+        <div class="mb-3">
+            <label for="email" class="form-label">E-posta</label>
+            <input type="email" class="form-control" id="email" name="email" required>
+        </div>
+        <div class="mb-3">
+            <label for="phone" class="form-label">Telefon</label>
+            <input type="text" class="form-control" id="phone" name="phone" required>
+        </div>
+        <div class="mb-3">
+            <label for="service_type" class="form-label">Hizmet Türü</label>
+            <input type="text" class="form-control" id="service_type" name="service_type" required>
+        </div>
+        <div class="mb-3">
+            <label for="message" class="form-label">Mesaj</label>
+            <textarea class="form-control" id="message" name="message" rows="4"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Ekle</button>
+    </form>
+</div>
+{% endblock %}

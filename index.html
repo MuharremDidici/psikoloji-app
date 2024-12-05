@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Umut Psikoloji Merkezi</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Umut Psikoloji Merkezi</div>
+            <ul>
+                <li><a href="#home">Anasayfa</a></li>
+                <li><a href="#services">Hizmetlerimiz</a></li>
+                <li><a href="#team">Ekibimiz</a></li>
+                <li><a href="#blog">Blog</a></li>
+                <li><a href="#contact">İletişim</a></li>
+                <li><a href="#appointment" class="appointment-btn">Randevu Al</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="home" class="hero">
+            <div class="hero-content">
+                <h1>Umut Psikoloji Merkezi</h1>
+                <p>Profesyonel Psikolojik Destek ve Terapi Hizmetleri</p>
+                <a href="#appointment" class="cta-button">Randevu Al</a>
+            </div>
+        </section>
+
+        <section id="services" class="services">
+            <h2>Hizmetlerimiz</h2>
+            <div class="service-grid">
+                <div class="service-card">
+                    <h3>Bireysel Terapi</h3>
+                    <p>Kişisel gelişim ve psikolojik destek için özel görüşmeler.</p>
+                </div>
+                <div class="service-card">
+                    <h3>Çocuk ve Ergen Terapisi</h3>
+                    <p>Çocuk ve ergenlerin duygusal ve zihinsel gelişimine destek.</p>
+                </div>
+                <div class="service-card">
+                    <h3>Çift ve Aile Terapisi</h3>
+                    <p>Aile içi iletişimi güçlendiren ve ilişkileri iyileştiren terapi.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="team" class="team">
+            <h2>Ekibimiz</h2>
+            <div class="team-grid">
+                <div class="team-member">
+                    <img src="team/dr-ayse.jpg" alt="Dr. Ayşe Yılmaz">
+                    <h3>Dr. Ayşe Yılmaz</h3>
+                    <p>Klinik Psikolog</p>
+                    <p>Bireysel ve Çift Terapisi Uzmanı</p>
+                </div>
+                <div class="team-member">
+                    <img src="team/dr-mehmet.jpg" alt="Dr. Mehmet Kaya">
+                    <h3>Dr. Mehmet Kaya</h3>
+                    <p>Çocuk ve Ergen Psikoloğu</p>
+                    <p>Gelişimsel Terapi Uzmanı</p>
+                </div>
+                <div class="team-member">
+                    <img src="team/dr-zehra.jpg" alt="Dr. Zehra Demir">
+                    <h3>Dr. Zehra Demir</h3>
+                    <p>Aile Terapisti</p>
+                    <p>Sistemik Aile Terapisi Uzmanı</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="blog" class="blog">
+            <h2>Blog</h2>
+            <div class="blog-grid">
+                <article class="blog-post">
+                    <h3>Stresle Başa Çıkma Yöntemleri</h3>
+                    <p>Modern hayatın kaçınılmaz bir parçası olan stresle nasıl başa çıkabiliriz? İşte size pratik öneriler...</p>
+                    <a href="#" class="read-more">Devamını Oku</a>
+                </article>
+                <article class="blog-post">
+                    <h3>Çocuklarda Duygusal Zeka Gelişimi</h3>
+                    <p>Çocuklarımızın duygusal zekasını nasıl destekleyebiliriz? Ebeveynler için önemli ipuçları...</p>
+                    <a href="#" class="read-more">Devamını Oku</a>
+                </article>
+                <article class="blog-post">
+                    <h3>Sağlıklı İlişkiler Kurmanın Anahtarları</h3>
+                    <p>İlişkilerinizde sağlıklı iletişim ve duygusal bağ kurmak için profesyonel tavsiyeler...</p>
+                    <a href="#" class="read-more">Devamını Oku</a>
+                </article>
+            </div>
+        </section>
+
+        <section id="contact" class="contact">
+            <h2>İletişim</h2>
+            <div class="contact-info">
+                <div class="contact-details">
+                    <h3>Umut Psikoloji Merkezi</h3>
+                    <p>📍 Adres: Bağdat Caddesi No:123, Kadıköy/İstanbul</p>
+                    <p>📞 Telefon: (0216) 555 44 33</p>
+                    <p>✉️ E-posta: info@umutpsikoloji.com</p>
+                </div>
+                <div class="contact-map">
+                    <iframe 
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3010.1491093539!2d29.0433!3d41.0082!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDHCsDAn!5e0!3m2!1str!2str!4v1623456789" 
+                        width="100%" height="300" style="border:0;" allowfullscreen="" loading="lazy">
+                    </iframe>
+                </div>
+            </div>
+        </section>
+
+        <section id="appointment" class="appointment">
+            <h2>Randevu Al</h2>
+            <form id="appointment-form">
+                <input type="text" placeholder="Ad Soyad" required>
+                <input type="email" placeholder="E-posta" required>
+                <input type="tel" placeholder="Telefon Numarası" required>
+                <select required>
+                    <option value="">Hizmet Seçin</option>
+                    <option value="bireysel">Bireysel Terapi</option>
+                    <option value="cocuk">Çocuk ve Ergen Terapisi</option>
+                    <option value="cift">Çift ve Aile Terapisi</option>
+                </select>
+                <textarea placeholder="Randevu Talebi Açıklaması"></textarea>
+                <button type="submit">Randevu Talebi Gönder</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p> 2023 Umut Psikoloji Merkezi. Tüm hakları saklıdır.</p>
+            <div class="social-links">
+                <a href="#">Instagram</a>
+                <a href="#">LinkedIn</a>
+                <a href="#">Facebook</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

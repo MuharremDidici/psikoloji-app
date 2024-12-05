@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mt-5">Yeni Blog Yazısı Ekle</h1>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="title" class="form-label">Başlık</label>
+            <input type="text" class="form-control" id="title" name="title" required>
+        </div>
+        <div class="mb-3">
+            <label for="content" class="form-label">İçerik</label>
+            <textarea class="form-control" id="content" name="content" rows="10" required></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="image_url" class="form-label">Görsel URL (isteğe bağlı)</label>
+            <input type="text" class="form-control" id="image_url" name="image_url">
+        </div>
+        <button type="submit" class="btn btn-primary">Ekle</button>
+    </form>
+</div>
+{% endblock %}

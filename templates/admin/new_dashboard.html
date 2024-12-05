@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-none d-md-block admin-sidebar">
+            <div class="sidebar-sticky">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-white">
+                    <span>Yönetim Paneli</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#appointments">
+                            <i class="fas fa-calendar-alt"></i>
+                            Randevular
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#blog-posts">
+                            <i class="fas fa-blog"></i>
+                            Blog Yazıları
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#team">
+                            <i class="fas fa-users"></i>
+                            Ekip Üyeleri
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <main role="main" class="col-md-10 ml-sm-auto px-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1>Yönetim Paneli</h1>
+            </div>
+
+            <section id="appointments" class="mb-5">
+                <h2>Randevular</h2>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <a href="{{ url_for('new_appointment') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Yeni Randevu Ekle
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Tarih</th>
+                                <th>İsim</th>
+                                <th>E-posta</th>
+                                <th>Telefon</th>
+                                <th>Hizmet</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appointment in appointments %}
+                            <tr>
+                                <td>{{ appointment.date_requested }}</td>
+                                <td>{{ appointment.name }}</td>
+                                <td>{{ appointment.email }}</td>
+                                <td>{{ appointment.phone }}</td>
+                                <td>{{ appointment.service_type }}</td>
+                                <td>
+                                    <a href="{{ url_for('edit_appointment', id=appointment.id) }}" class="btn btn-warning btn-sm">Düzenle</a>
+                                    <form action="{{ url_for('delete_appointment', id=appointment.id) }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm">Sil</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="blog-posts" class="mb-5">
+                <h2>Blog Yazıları</h2>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <a href="{{ url_for('new_blog') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Yeni Blog Yazısı Ekle
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Başlık</th>
+                                <th>İçerik</th>
+                                <th>Görsel URL</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for post in posts %}
+                            <tr>
+                                <td>{{ post.title }}</td>
+                                <td>{{ post.content }}</td>
+                                <td>{{ post.image_url }}</td>
+                                <td>
+                                    <a href="{{ url_for('edit_blog', id=post.id) }}" class="btn btn-warning btn-sm">Düzenle</a>
+                                    <form action="{{ url_for('delete_blog', id=post.id) }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm">Sil</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="team" class="mb-5">
+                <h2>Ekip Üyeleri</h2>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <a href="{{ url_for('new_psychologist') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Yeni Üye Ekle
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>İsim</th>
+                                <th>Unvan</th>
+                                <th>Uzmanlık</th>
+                                <th>Biyografi</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for psychologist in psychologists %}
+                            <tr>
+                                <td>{{ psychologist.name }}</td>
+                                <td>{{ psychologist.title }}</td>
+                                <td>{{ psychologist.specialization }}</td>
+                                <td>{{ psychologist.bio }}</td>
+                                <td>
+                                    <a href="{{ url_for('edit_psychologist', id=psychologist.id) }}" class="btn btn-warning btn-sm">Düzenle</a>
+                                    <form action="{{ url_for('delete_psychologist', id=psychologist.id) }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm">Sil</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="services-hero py-5 bg-light">
+    <div class="container">
+        <h1 class="text-center mb-4 fade-in">Hizmetlerimiz</h1>
+        <p class="text-center lead mb-5 fade-in delay-1">Size en uygun terapi yöntemini birlikte belirleyelim</p>
+    </div>
+</div>
+
+<div class="services-section py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="service-card fade-in">
+                    <div class="service-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h3>Bireysel Terapi</h3>
+                    <p>Kişisel gelişiminiz ve ruh sağlığınız için profesyonel destek. Kaygı, depresyon, stres yönetimi ve daha fazlası için yanınızdayız.</p>
+                    <ul class="service-features">
+                        <li><i class="fas fa-check"></i> Depresyon</li>
+                        <li><i class="fas fa-check"></i> Anksiyete</li>
+                        <li><i class="fas fa-check"></i> Stres Yönetimi</li>
+                        <li><i class="fas fa-check"></i> Özgüven Geliştirme</li>
+                    </ul>
+                    <a href="{{ url_for('appointment') }}" class="btn btn-primary">Randevu Al</a>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="service-card fade-in delay-1">
+                    <div class="service-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h3>Çift Terapisi</h3>
+                    <p>İlişkinizi güçlendirmek ve sorunları çözmek için profesyonel destek. İletişim problemleri, güven sorunları ve çatışma çözümü.</p>
+                    <ul class="service-features">
+                        <li><i class="fas fa-check"></i> İletişim Sorunları</li>
+                        <li><i class="fas fa-check"></i> Güven Problemleri</li>
+                        <li><i class="fas fa-check"></i> Çatışma Çözümü</li>
+                        <li><i class="fas fa-check"></i> İlişki Danışmanlığı</li>
+                    </ul>
+                    <a href="{{ url_for('appointment') }}" class="btn btn-primary">Randevu Al</a>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="service-card fade-in delay-2">
+                    <div class="service-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Aile Danışmanlığı</h3>
+                    <p>Aile içi iletişimi güçlendirmek ve sorunları çözmek için profesyonel destek. Ebeveyn-çocuk ilişkileri ve aile dinamikleri.</p>
+                    <ul class="service-features">
+                        <li><i class="fas fa-check"></i> Aile İçi İletişim</li>
+                        <li><i class="fas fa-check"></i> Ebeveyn Danışmanlığı</li>
+                        <li><i class="fas fa-check"></i> Çocuk Gelişimi</li>
+                        <li><i class="fas fa-check"></i> Ergen Sorunları</li>
+                    </ul>
+                    <a href="{{ url_for('appointment') }}" class="btn btn-primary">Randevu Al</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="approach-section py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5 fade-in">Terapi Yaklaşımımız</h2>
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="approach-card fade-in delay-1">
+                    <h4><i class="fas fa-hands-helping"></i> Güvenli ve Destekleyici Ortam</h4>
+                    <p>Kendinizi güvende ve rahat hissedebileceğiniz profesyonel bir terapi ortamı sağlıyoruz.</p>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="approach-card fade-in delay-2">
+                    <h4><i class="fas fa-brain"></i> Bilimsel Temelli Yaklaşım</h4>
+                    <p>En güncel ve kanıta dayalı terapi yöntemlerini kullanarak size destek oluyoruz.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.services-hero {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 80px 0;
+}
+
+.service-card {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    height: 100%;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.service-card:hover {
+    transform: translateY(-10px);
+}
+
+.service-icon {
+    font-size: 3rem;
+    color: #4CAF50;
+    margin-bottom: 20px;
+}
+
+.service-features {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+}
+
+.service-features li {
+    margin-bottom: 10px;
+    color: #666;
+}
+
+.service-features i {
+    color: #4CAF50;
+    margin-right: 10px;
+}
+
+.approach-card {
+    background: white;
+    border-radius: 10px;
+    padding: 25px;
+    height: 100%;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.approach-card h4 {
+    color: #4CAF50;
+    margin-bottom: 15px;
+}
+
+.approach-card i {
+    margin-right: 10px;
+}
+
+.fade-in {
+    opacity: 0;
+    animation: fadeIn 1s ease-in forwards;
+}
+
+.delay-1 {
+    animation-delay: 0.2s;
+}
+
+.delay-2 {
+    animation-delay: 0.4s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mt-5">Ekip Üyeleri Yönetimi</h1>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>İsim</th>
+                <th>Unvan</th>
+                <th>Uzmanlık</th>
+                <th>Biyografi</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for psychologist in psychologists %}
+            <tr>
+                <td>{{ psychologist.name }}</td>
+                <td>{{ psychologist.title }}</td>
+                <td>{{ psychologist.specialization }}</td>
+                <td>{{ psychologist.bio }}</td>
+                <td>
+                    <a href="{{ url_for('edit_psychologist', id=psychologist.id) }}" class="btn btn-warning btn-sm">Düzenle</a>
+                    <form action="{{ url_for('delete_psychologist', id=psychologist.id) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm">Sil</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <form method="POST">
+        <h2>Yeni Psikolog Ekle</h2>
+        <div class="mb-3">
+            <label for="name" class="form-label">İsim</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+        <div class="mb-3">
+            <label for="title" class="form-label">Unvan</label>
+            <input type="text" class="form-control" id="title" name="title" required>
+        </div>
+        <div class="mb-3">
+            <label for="specialization" class="form-label">Uzmanlık Alanı</label>
+            <input type="text" class="form-control" id="specialization" name="specialization" required>
+        </div>
+        <div class="mb-3">
+            <label for="bio" class="form-label">Biyografi</label>
+            <textarea class="form-control" id="bio" name="bio" rows="4" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Ekle</button>
+    </form>
+</div>
+{% endblock %}

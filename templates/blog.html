@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header py-5 bg-light">
+    <div class="container">
+        <h1 class="text-center">Blog</h1>
+        <p class="text-center lead">Psikoloji dünyasından güncel yazılar ve bilgiler</p>
+    </div>
+</section>
+
+<section class="blog-posts py-5">
+    <div class="container">
+        <div class="row">
+            {% for post in posts %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    {% if post.image_url %}
+                    <img src="{{ post.image_url }}" class="card-img-top" alt="{{ post.title }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ post.title }}</h5>
+                        <p class="card-text text-muted">{{ post.date_posted.strftime('%d.%m.%Y') }}</p>
+                        <p class="card-text">{{ post.content[:200] }}...</p>
+                        <a href="#" class="btn btn-outline-primary">Devamını Oku</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Örnek kategoriler -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <h3 class="mb-4">Kategoriler</h3>
+                <div class="categories">
+                    <a href="#" class="badge bg-primary me-2 mb-2">Kişisel Gelişim</a>
+                    <a href="#" class="badge bg-primary me-2 mb-2">Aile İlişkileri</a>
+                    <a href="#" class="badge bg-primary me-2 mb-2">Çocuk Gelişimi</a>
+                    <a href="#" class="badge bg-primary me-2 mb-2">Anksiyete</a>
+                    <a href="#" class="badge bg-primary me-2 mb-2">Depresyon</a>
+                    <a href="#" class="badge bg-primary me-2 mb-2">İlişkiler</a>
+                    <a href="#" class="badge bg-primary me-2 mb-2">Stres Yönetimi</a>
+                    <a href="#" class="badge bg-primary me-2 mb-2">Mindfulness</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Newsletter Section -->
+<section class="newsletter py-5 bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center">
+                <h3>Bültenimize Abone Olun</h3>
+                <p>En yeni blog yazılarımızdan ve etkinliklerimizden haberdar olun.</p>
+                <form class="newsletter-form">
+                    <div class="input-group mb-3">
+                        <input type="email" class="form-control" placeholder="E-posta adresiniz">
+                        <button class="btn btn-primary" type="submit">Abone Ol</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

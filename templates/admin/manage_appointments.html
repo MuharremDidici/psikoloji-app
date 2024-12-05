@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mt-5">Randevu Yönetimi</h1>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Ad</th>
+                <th>Email</th>
+                <th>Telefon</th>
+                <th>Hizmet Türü</th>
+                <th>Mesaj</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for appointment in appointments %}
+            <tr>
+                <td>{{ appointment.name }}</td>
+                <td>{{ appointment.email }}</td>
+                <td>{{ appointment.phone }}</td>
+                <td>{{ appointment.service_type }}</td>
+                <td>{{ appointment.message }}</td>
+                <td>
+                    <form action="{{ url_for('delete_appointment', id=appointment.id) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm">Sil</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

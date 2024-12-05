@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.css' rel='stylesheet' />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<style>
+    .appointment-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .calendar-container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+
+    .fc {
+        max-height: 600px;
+        font-size: 0.9em;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1.5em;
+        color: #4CAF50;
+    }
+
+    .fc .fc-button-primary {
+        background-color: #4CAF50;
+        border-color: #4CAF50;
+        font-size: 0.9em;
+        padding: 6px 12px;
+    }
+
+    .fc .fc-button-primary:hover {
+        background-color: #45a049;
+        border-color: #45a049;
+    }
+
+    .fc .fc-daygrid-day {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .fc .fc-daygrid-day:hover {
+        background-color: #f8f9fa;
+    }
+
+    .fc .fc-daygrid-day.fc-day-today {
+        background-color: rgba(76, 175, 80, 0.1);
+    }
+
+    .appointment-form {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        padding: 25px;
+    }
+
+    .form-control:focus, .select2-container--focus {
+        border-color: #4CAF50;
+        box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25);
+    }
+
+    .select2-container--default .select2-selection--single {
+        height: 38px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 36px;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #4CAF50;
+    }
+
+    .time-slots {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .time-slot {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .time-slot:hover {
+        background: #e9ecef;
+        transform: translateY(-2px);
+    }
+
+    .time-slot.selected {
+        background: #4CAF50;
+        color: white;
+        border-color: #4CAF50;
+    }
+
+    .time-slot.disabled {
+        background: #e9ecef;
+        color: #6c757d;
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+    @media (max-width: 768px) {
+        .fc {
+            font-size: 0.8em;
+        }
+
+        .time-slots {
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        }
+    }
+
+    .booked-slot {
+        background-color: #ff4444 !important;
+        border: none !important;
+        color: white !important;
+        font-weight: bold !important;
+        text-align: center !important;
+        padding: 4px !important;
+        border-radius: 4px !important;
+        margin: 1px !important;
+        cursor: not-allowed !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+    }
+
+    .available-slot {
+        background-color: #4caf50 !important;
+        border: none !important;
+        color: white !important;
+        font-weight: bold !important;
+        text-align: center !important;
+        padding: 4px !important;
+    }
+
+    .fc-timegrid-slot {
+        height: 4em !important;
+    }
+
+    .fc-non-business {
+        background: #dddddd !important;
+    }
+
+    .fc-timegrid-slot-lane {
+        background-color: #e8f5e9 !important;
+        border-bottom: 1px solid #ddd !important;
+    }
+
+    .fc-event {
+        cursor: pointer !important;
+    }
+
+    .fc-timegrid-col-frame:hover {
+        background-color: #c8e6c9 !important;
+        cursor: pointer;
+    }
+
+    .fc-toolbar-title {
+        font-weight: bold !important;
+        color: #2c3e50 !important;
+    }
+
+    .fc-timegrid-axis-cushion {
+        font-weight: bold !important;
+        color: #2c3e50 !important;
+    }
+
+    .fc-day-available {
+        background-color: #e8f5e9 !important;
+        cursor: pointer;
+    }
+
+    .fc-day-unavailable {
+        background-color: #ffebee !important;
+        cursor: not-allowed;
+        position: relative;
+    }
+
+    .fc-day-unavailable::after {
+        content: '✕';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #d32f2f;
+        font-size: 1.2em;
+    }
+
+    .fc-day-past {
+        background-color: #f5f5f5 !important;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="appointment-container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-center mb-4">Randevu Al</h2>
+            <div class="alert alert-info">
+                <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Randevu Bilgilendirmesi</h5>
+                <p class="mb-0">Randevunuzu en az 24 saat öncesinden almanızı rica ederiz. İptal etmek istediğiniz randevularınızı da en az 24 saat öncesinden bildirmeniz gerekmektedir.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Randevu Formu -->
+        <div class="col-md-5 mb-4">
+            <div class="appointment-form">
+                <h4 class="mb-4">Randevu Bilgileri</h4>
+                <form id="appointmentForm">
+                    <div class="mb-3">
+                        <label for="therapist" class="form-label">Terapist</label>
+                        <select class="form-select" id="therapist" required>
+                            <option value="">Terapist seçiniz</option>
+                            <option value="1">Dr. Ahmet Yılmaz - Psikiyatrist</option>
+                            <option value="2">Uzm. Psk. Ayşe Demir - Klinik Psikolog</option>
+                            <option value="3">Uzm. Psk. Mehmet Kaya - Klinik Psikolog</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="appointmentType" class="form-label">Görüşme Türü</label>
+                        <select class="form-select" id="appointmentType" required>
+                            <option value="">Görüşme türü seçiniz</option>
+                            <option value="online_first">Online İlk Görüşme (60 dk)</option>
+                            <option value="online_therapy">Online Bireysel Terapi (45 dk)</option>
+                            <option value="online_couple">Online Çift Terapisi (60 dk)</option>
+                            <option value="face_first">Yüz Yüze İlk Görüşme (60 dk)</option>
+                            <option value="face_therapy">Yüz Yüze Bireysel Terapi (45 dk)</option>
+                            <option value="face_couple">Yüz Yüze Çift Terapisi (60 dk)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Seçilen Tarih</label>
+                        <input type="text" class="form-control" id="selectedDate" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Seçilen Saat</label>
+                        <input type="text" class="form-control" id="selectedTime" readonly>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100" id="submitAppointment">
+                        <i class="fas fa-calendar-check me-2"></i>Randevu Oluştur
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Takvim -->
+        <div class="col-md-7 mb-4">
+            <div class="calendar-container">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        locale: 'tr',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'timeGridWeek'
+        },
+        slotMinTime: '09:00:00',
+        slotMaxTime: '17:00:00',
+        allDaySlot: false,
+        slotDuration: '01:00:00',
+        expandRows: true,
+        height: 'auto',
+        businessHours: {
+            daysOfWeek: [1, 2, 3, 4, 5],
+            startTime: '09:00',
+            endTime: '17:00',
+        },
+        selectConstraint: 'businessHours',
+        selectable: true,
+        select: function(info) {
+            // Seçilen tarih ve saati input'lara yaz
+            const startDate = new Date(info.start);
+            document.getElementById('selectedDate').value = startDate.toISOString().split('T')[0];
+            document.getElementById('selectedTime').value = startDate.toTimeString().slice(0, 5);
+        },
+        events: function(info, successCallback, failureCallback) {
+            const psychologist = document.getElementById('therapist').value;
+            if (!psychologist) {
+                successCallback([]);
+                return;
+            }
+            
+            fetch(`/get_appointments/${psychologist}`)
+                .then(response => response.json())
+                .then(data => {
+                    const events = data.map(event => ({
+                        title: 'DOLU',
+                        start: event.start,
+                        end: event.end,
+                        backgroundColor: '#ff4444',
+                        borderColor: '#ff4444',
+                        textColor: '#ffffff'
+                    }));
+                    successCallback(events);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    failureCallback(error);
+                });
+        }
+    });
+    calendar.render();
+
+    // Terapist seçildiğinde takvimi güncelle
+    $('#therapist').on('change', function() {
+        calendar.refetchEvents();
+    });
+
+    // Form gönderimi
+    document.getElementById('appointmentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Form kontrollerini yap
+        const psychologist = document.getElementById('therapist').value;
+        const appointmentType = document.getElementById('appointmentType').value;
+        const selectedDate = document.getElementById('selectedDate').value;
+        const selectedTime = document.getElementById('selectedTime').value;
+
+        if (!psychologist || !appointmentType || !selectedDate || !selectedTime) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Eksik Bilgi',
+                text: 'Lütfen tüm alanları doldurun!'
+            });
+            return;
+        }
+
+        // Randevuyu kaydet
+        fetch('/save_appointment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                date: selectedDate,
+                time: selectedTime,
+                psychologist_id: psychologist,
+                appointment_type: appointmentType
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Başarılı!',
+                    text: data.message
+                });
+                
+                // Formu sıfırla
+                this.reset();
+                document.getElementById('selectedDate').value = '';
+                document.getElementById('selectedTime').value = '';
+                $('#therapist, #appointmentType').val('').trigger('change');
+                
+                // Takvimi güncelle
+                calendar.refetchEvents();
+                
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Hata!',
+                    text: data.message
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Hata!',
+                text: 'Bir hata oluştu, lütfen tekrar deneyin.'
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

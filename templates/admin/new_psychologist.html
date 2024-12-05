@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mt-5">Yeni Psikolog Ekle</h1>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="name" class="form-label">İsim</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+        <div class="mb-3">
+            <label for="title" class="form-label">Unvan</label>
+            <input type="text" class="form-control" id="title" name="title" required>
+        </div>
+        <div class="mb-3">
+            <label for="specialization" class="form-label">Uzmanlık Alanı</label>
+            <input type="text" class="form-control" id="specialization" name="specialization" required>
+        </div>
+        <div class="mb-3">
+            <label for="image_url" class="form-label">Fotoğraf URL</label>
+            <input type="text" class="form-control" id="image_url" name="image_url" required>
+        </div>
+        <div class="mb-3">
+            <label for="bio" class="form-label">Biyografi</label>
+            <textarea class="form-control" id="bio" name="bio" rows="4" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Ekle</button>
+    </form>
+</div>
+{% endblock %}

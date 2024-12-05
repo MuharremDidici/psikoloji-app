@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="team-hero py-5 bg-light">
+    <div class="container">
+        <h1 class="text-center mb-4 fade-in">Uzman Ekibimiz</h1>
+        <p class="text-center lead mb-5 fade-in delay-1">Deneyimli ve profesyonel psikologlarımızla tanışın</p>
+    </div>
+</div>
+
+<div class="team-section py-5">
+    <div class="container">
+        <div class="row">
+            {% for psychologist in psychologists %}
+            <div class="col-md-4 mb-4">
+                <div class="team-card fade-in">
+                    <div class="team-image">
+                        <img src="{{ url_for('static', filename='img/psychologist-' ~ loop.index ~ '.jpg') }}" alt="{{ psychologist.name }}" class="img-fluid rounded-circle">
+                    </div>
+                    <div class="team-info">
+                        <h3>{{ psychologist.name }}</h3>
+                        <p class="title">{{ psychologist.title }}</p>
+                        <p class="specialization">{{ psychologist.specialization }}</p>
+                        <p class="bio">{{ psychologist.bio }}</p>
+                        <a href="{{ url_for('appointment') }}" class="btn btn-primary">Randevu Al</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="values-section py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5 fade-in">Değerlerimiz</h2>
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="value-card fade-in delay-1">
+                    <div class="value-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h4>Empati</h4>
+                    <p>Her danışanımızın benzersiz olduğuna inanıyor ve buna göre yaklaşıyoruz.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="value-card fade-in delay-2">
+                    <div class="value-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h4>Gizlilik</h4>
+                    <p>Danışan bilgilerinin gizliliği ve güvenliği bizim için en önemli önceliktir.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="value-card fade-in delay-3">
+                    <div class="value-icon">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <h4>Profesyonellik</h4>
+                    <p>Sürekli gelişim ve eğitim ile en iyi hizmeti sunmayı hedefliyoruz.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.team-hero {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 80px 0;
+}
+
+.team-card {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    height: 100%;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.team-card:hover {
+    transform: translateY(-10px);
+}
+
+.team-image {
+    margin-bottom: 20px;
+}
+
+.team-image img {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border: 5px solid #4CAF50;
+    transition: transform 0.3s ease;
+}
+
+.team-image img:hover {
+    transform: scale(1.05);
+}
+
+.team-info h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.team-info .title {
+    color: #4CAF50;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+.team-info .specialization {
+    color: #666;
+    font-style: italic;
+    margin-bottom: 15px;
+}
+
+.team-info .bio {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.value-card {
+    background: white;
+    border-radius: 10px;
+    padding: 25px;
+    height: 100%;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.value-icon {
+    font-size: 2.5rem;
+    color: #4CAF50;
+    margin-bottom: 15px;
+}
+
+.value-card h4 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.fade-in {
+    opacity: 0;
+    animation: fadeIn 1s ease-in forwards;
+}
+
+.delay-1 {
+    animation-delay: 0.2s;
+}
+
+.delay-2 {
+    animation-delay: 0.4s;
+}
+
+.delay-3 {
+    animation-delay: 0.6s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+{% endblock %}

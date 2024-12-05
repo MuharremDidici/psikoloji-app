@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">Oturumlarım</h2>
+            
+            <!-- Aktif Oturumlar -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Aktif Oturumlar</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Psikolog</th>
+                                    <th>Son Oturum</th>
+                                    <th>Toplam Oturum</th>
+                                    <th>Durum</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if current_user.sessions %}
+                                    {% for session in current_user.sessions %}
+                                    <tr>
+                                        <td>{{ session.psychologist.name }}</td>
+                                        <td>{{ session.last_session_date.strftime('%d.%m.%Y') if session.last_session_date else 'Henüz oturum yok' }}</td>
+                                        <td>{{ session.total_sessions }}</td>
+                                        <td>
+                                            {% if session.status == 'active' %}
+                                                <span class="badge bg-success">Aktif</span>
+                                            {% elif session.status == 'completed' %}
+                                                <span class="badge bg-info">Tamamlandı</span>
+                                            {% elif session.status == 'cancelled' %}
+                                                <span class="badge bg-danger">İptal Edildi</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('session_detail', session_id=session.id) }}" class="btn btn-sm btn-info">Detay</a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">Henüz aktif oturumunuz bulunmamaktadır.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Geçmiş Oturumlar -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Geçmiş Oturumlar</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Psikolog</th>
+                                    <th>Başlangıç</th>
+                                    <th>Bitiş</th>
+                                    <th>Toplam Oturum</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if current_user.completed_sessions %}
+                                    {% for session in current_user.completed_sessions %}
+                                    <tr>
+                                        <td>{{ session.psychologist.name }}</td>
+                                        <td>{{ session.start_date.strftime('%d.%m.%Y') }}</td>
+                                        <td>{{ session.end_date.strftime('%d.%m.%Y') }}</td>
+                                        <td>{{ session.total_sessions }}</td>
+                                        <td>
+                                            <span class="badge bg-info">Tamamlandı</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">Henüz tamamlanmış oturumunuz bulunmamaktadır.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

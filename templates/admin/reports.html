@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Raporlar</h2>
+        <a href="{{ url_for('admin_dashboard_panel') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Panele Dön
+        </a>
+    </div>
+
+    {% if not month_stats %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Henüz hiç randevu kaydı bulunmamaktadır.
+    </div>
+    {% else %}
+    <div class="row">
+        <!-- Aylık Randevu İstatistikleri -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Aylık Randevu İstatistikleri</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyStats"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Psikolog Bazlı Randevu Sayıları -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Psikolog Bazlı Randevular</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="psychologistStats"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Randevu Durumu Dağılımı -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Randevu Durumu Dağılımı</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusStats"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Özet Tablo -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Özet İstatistikler</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th>Toplam Randevu</th>
+                                    <td>{{ month_stats | sum(attribute='count') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>En Yoğun Ay</th>
+                                    <td>
+                                        {% if month_stats %}
+                                            {% set max_month = month_stats | max(attribute='count') %}
+                                            {{ max_month.month }} ({{ max_month.count }} randevu)
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>En Aktif Psikolog</th>
+                                    <td>
+                                        {% if psychologist_stats %}
+                                            {% set max_psych = psychologist_stats | max(attribute='count') %}
+                                            {{ max_psych.name }} ({{ max_psych.count }} randevu)
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if month_stats %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Aylık İstatistikler Grafiği
+    const monthlyCtx = document.getElementById('monthlyStats').getContext('2d');
+    new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: {{ month_stats | map(attribute='month') | list | tojson }},
+            datasets: [{
+                label: 'Randevu Sayısı',
+                data: {{ month_stats | map(attribute='count') | list | tojson }},
+                borderColor: '#4CAF50',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            }
+        }
+    });
+
+    // Psikolog Bazlı İstatistikler Grafiği
+    const psychCtx = document.getElementById('psychologistStats').getContext('2d');
+    new Chart(psychCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ psychologist_stats | map(attribute='name') | list | tojson }},
+            datasets: [{
+                label: 'Randevu Sayısı',
+                data: {{ psychologist_stats | map(attribute='count') | list | tojson }},
+                backgroundColor: '#2196F3'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            }
+        }
+    });
+
+    // Randevu Durumu Grafiği
+    const statusCtx = document.getElementById('statusStats').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ status_stats | map(attribute='status') | list | tojson }},
+            datasets: [{
+                data: {{ status_stats | map(attribute='count') | list | tojson }},
+                backgroundColor: ['#4CAF50', '#FFC107', '#F44336']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,147 @@
+:root {
+    --mint-green: #10ac84;
+    --light-mint: #1dd1a1;
+    --orange: #ff6b6b;
+    --light-orange: #feca57;
+    --dark-text: #2f3542;
+    --light-text: #f1f2f6;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    color: var(--dark-text);
+}
+
+header {
+    background-color: var(--mint-green);
+    color: white;
+    padding: 1rem 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+nav ul {
+    display: flex;
+    list-style: none;
+    gap: 20px;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+nav a:hover {
+    color: var(--orange);
+}
+
+.hero {
+    background: linear-gradient(135deg, var(--mint-green), var(--light-mint));
+    color: white;
+    text-align: center;
+    padding: 100px 20px;
+}
+
+.hero-content h1 {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+
+.cta-button, .appointment-btn {
+    display: inline-block;
+    background-color: var(--orange);
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.cta-button:hover, .appointment-btn:hover {
+    background-color: var(--light-orange);
+}
+
+section {
+    padding: 50px 5%;
+}
+
+section h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: var(--mint-green);
+}
+
+.service-grid, .team-grid, .blog-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.service-card, .team-member, .blog-post {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.service-card:hover, .team-member:hover, .blog-post:hover {
+    transform: translateY(-10px);
+}
+
+.team-member img {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.expert-img {
+    width: 100%;
+    height: auto;
+    border-radius: 50%; /* Oval görünüm için */
+}
+
+.card-img-top {
+    width: 100%;
+    height: auto;
+    border-radius: 50%; /* Oval görünüm için */
+}
+
+.contact-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.appointment-form {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.appointment input, 
+.appointment select, 
+.appointment textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid var(--mint-green);
+    border-radius: 5px;
+}
+
+footer {
+    background-color: var(--mint-green);
+    color: white;
+    text-align: center;
+    padding: 20px;
+}

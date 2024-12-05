@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <div id="testContainer">
+                <!-- Test başlangıç ekranı -->
+                <div id="testStart" class="text-center">
+                    <div class="test-selection">
+                        <h3 class="mb-4">Psikolojik Değerlendirme Testleri</h3>
+                        <div class="row row-cols-1 row-cols-md-2 g-4">
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Beck Depresyon Envanteri</h5>
+                                        <p class="card-text">Depresyon belirtilerinin şiddetini ölçmek için kullanılan, dünya çapında kabul görmüş bir değerlendirme aracı.</p>
+                                        <button class="btn btn-primary" onclick="startTest('beck_depression')">
+                                            <i class="fas fa-play me-2"></i>Testi Başlat
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Hamilton Anksiyete Ölçeği</h5>
+                                        <p class="card-text">Anksiyete belirtilerinin şiddetini ölçmek için kullanılan standart bir değerlendirme aracı.</p>
+                                        <button class="btn btn-primary" onclick="startTest('hamilton_anxiety')">
+                                            <i class="fas fa-play me-2"></i>Testi Başlat
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Sosyal Anksiyete Ölçeği</h5>
+                                        <p class="card-text">Sosyal durumlarda yaşanan kaygı ve kaçınma davranışlarını değerlendiren standart bir ölçek.</p>
+                                        <button class="btn btn-primary" onclick="startTest('social_anxiety')">
+                                            <i class="fas fa-play me-2"></i>Testi Başlat
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Algılanan Stres Ölçeği</h5>
+                                        <p class="card-text">Son bir ay içinde yaşadığınız stres düzeyini değerlendiren, yaygın kullanılan bir ölçek.</p>
+                                        <button class="btn btn-primary" onclick="startTest('perceived_stress')">
+                                            <i class="fas fa-play me-2"></i>Testi Başlat
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Uyku Kalitesi İndeksi</h5>
+                                        <p class="card-text">Son bir ay içindeki uyku kalitesi ve uyku bozukluklarını değerlendiren standart bir ölçek.</p>
+                                        <button class="btn btn-primary" onclick="startTest('sleep_quality')">
+                                            <i class="fas fa-play me-2"></i>Testi Başlat
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test soruları -->
+                <div id="testQuestions" class="d-none">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 id="testTitle" class="card-title mb-4"></h3>
+                            <div id="questionContainer"></div>
+                            <div class="d-flex justify-content-between mt-4">
+                                <button onclick="previousQuestion()" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Önceki Soru
+                                </button>
+                                <button onclick="nextQuestion()" class="btn btn-primary">
+                                    Sonraki Soru<i class="fas fa-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test sonuçları -->
+                <div id="testResult" class="d-none">
+                    <!-- Sonuçlar JavaScript ile doldurulacak -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<style>
+    .question {
+        margin-bottom: 2rem;
+    }
+    .answer-option {
+        display: block;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .answer-option:hover {
+        background-color: #f8f9fa;
+    }
+    .answer-option.selected {
+        background-color: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+    }
+    .result-chart {
+        max-width: 300px;
+        margin: 0 auto;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Custom JS -->
+<script src="{{ url_for('static', filename='js/tests.js') }}"></script>
+{% endblock %}

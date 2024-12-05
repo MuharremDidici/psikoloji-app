@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+<style>
+.hero-section {
+    padding: 100px 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.feature-box {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.feature-box:hover {
+    transform: translateY(-10px);
+}
+
+.feature-box i {
+    font-size: 3rem;
+    color: #4CAF50;
+}
+
+.fade-in {
+    opacity: 0;
+    animation: fadeIn 1s ease-in forwards;
+}
+
+.delay-1 {
+    animation-delay: 0.2s;
+}
+
+.delay-2 {
+    animation-delay: 0.4s;
+}
+
+.delay-3 {
+    animation-delay: 0.6s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.btn-primary {
+    background-color: #4CAF50;
+    border: none;
+    padding: 12px 24px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+}
+
+.btn-outline-primary {
+    color: #4CAF50;
+    border-color: #4CAF50;
+    padding: 12px 24px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background-color: #4CAF50;
+    color: white;
+    transform: translateY(-2px);
+}
+
+img {
+    transition: transform 0.3s ease;
+}
+
+img:hover {
+    transform: scale(1.02);
+}
+</style>
+
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1 class="display-4 mb-4 fade-in">Hamle Psikoloji</h1>
+                <p class="lead mb-4 fade-in delay-1">Profesyonel psikolojik danışmanlık hizmetleri ile yanınızdayız.</p>
+                <a href="{{ url_for('appointment') }}" class="btn btn-primary btn-lg fade-in delay-2">Randevu Al</a>
+            </div>
+            <div class="col-md-6">
+                <img src="https://via.placeholder.com/600x400" alt="Psikoloji Danışmanlık" class="img-fluid rounded shadow fade-in delay-3">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="features-section py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Hizmetlerimiz</h2>
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="feature-box text-center p-4 fade-in">
+                    <i class="fas fa-brain mb-3"></i>
+                    <h3>Bireysel Terapi</h3>
+                    <p>Kişisel gelişim ve ruh sağlığınız için profesyonel destek.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="feature-box text-center p-4 fade-in delay-1">
+                    <i class="fas fa-heart mb-3"></i>
+                    <h3>Çift Terapisi</h3>
+                    <p>İlişkinizi güçlendirmek için uzman desteği.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="feature-box text-center p-4 fade-in delay-2">
+                    <i class="fas fa-users mb-3"></i>
+                    <h3>Aile Danışmanlığı</h3>
+                    <p>Aile içi iletişimi ve bağları güçlendirme.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="about-section py-5 bg-light">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <img src="https://via.placeholder.com/600x400" alt="Hakkımızda" class="img-fluid rounded shadow fade-in">
+            </div>
+            <div class="col-md-6">
+                <h2 class="mb-4 fade-in delay-1">Neden Biz?</h2>
+                <p class="fade-in delay-2">Hamle Psikoloji olarak, deneyimli uzman kadromuz ve modern yaklaşımımızla sizlere en iyi hizmeti sunmayı hedefliyoruz. Güvenli ve destekleyici bir ortamda, kişisel gelişiminize katkıda bulunmak için buradayız.</p>
+                <a href="{{ url_for('about') }}" class="btn btn-outline-primary fade-in delay-3">Daha Fazla Bilgi</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    .video-container {
+        display: flex;
+        gap: 20px;
+        margin: 20px;
+    }
+
+    .video-box {
+        flex: 1;
+        max-width: 600px;
+    }
+
+    video {
+        width: 100%;
+        border-radius: 8px;
+        background-color: #f0f0f0;
+    }
+
+    .controls {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .control-btn {
+        padding: 10px 20px;
+        border-radius: 25px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .control-btn:hover {
+        opacity: 0.8;
+    }
+
+    .mute-btn {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    .video-btn {
+        background-color: #2196F3;
+        color: white;
+    }
+
+    .end-btn {
+        background-color: #f44336;
+        color: white;
+    }
+
+    .muted {
+        background-color: #666;
+    }
+
+    .chat-container {
+        width: 300px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        height: 500px;
+    }
+
+    .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 10px;
+    }
+
+    .chat-input {
+        display: flex;
+        padding: 10px;
+        border-top: 1px solid #ddd;
+    }
+
+    .chat-input input {
+        flex-grow: 1;
+        margin-right: 10px;
+        padding: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .chat-input button {
+        padding: 5px 15px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .message {
+        margin-bottom: 10px;
+        padding: 8px;
+        border-radius: 8px;
+        max-width: 80%;
+    }
+
+    .message.sent {
+        background-color: #e3f2fd;
+        margin-left: auto;
+    }
+
+    .message.received {
+        background-color: #f5f5f5;
+    }
+
+    .waiting-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 24px;
+        z-index: 1000;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Online Terapi Seansı</h2>
+    
+    <div id="waitingScreen" class="waiting-screen" style="display: none;">
+        <div class="text-center">
+            <div class="spinner-border mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div>Diğer katılımcı bekleniyor...</div>
+        </div>
+    </div>
+
+    <div class="video-container">
+        <div class="video-box">
+            <video id="localVideo" autoplay muted playsinline></video>
+            <div class="controls">
+                <button id="muteBtn" class="control-btn mute-btn">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button id="videoBtn" class="control-btn video-btn">
+                    <i class="fas fa-video"></i>
+                </button>
+                <button id="endBtn" class="control-btn end-btn">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="video-box">
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Mesajınızı yazın...">
+                <button id="sendBtn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+let localStream;
+let remoteStream;
+let peerConnection;
+let socket;
+let roomId = '{{ room_id }}';
+let isHost = {{ 'true' if is_host else 'false' }};
+
+const configuration = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' }
+    ]
+};
+
+// Socket.IO bağlantısı
+socket = io();
+
+socket.on('connect', () => {
+    console.log('Socket.IO bağlantısı kuruldu');
+    socket.emit('join', { room: roomId });
+});
+
+// Odaya katılma işlemleri
+socket.on('joined', async () => {
+    console.log('Odaya katıldı, medya erişimi isteniyor...');
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+        });
+        document.getElementById('localVideo').srcObject = localStream;
+        
+        // Diğer katılımcı bekleniyor mesajını göster
+        document.getElementById('waitingScreen').style.display = 'flex';
+        
+    } catch (err) {
+        console.error('Medya erişimi hatası:', err);
+        alert('Kamera veya mikrofon erişimi sağlanamadı!');
+    }
+});
+
+// Tüm kullanıcılar katıldığında
+socket.on('all_users_joined', async () => {
+    console.log('Tüm kullanıcılar katıldı');
+    document.getElementById('waitingScreen').style.display = 'none';
+    
+    if (!isHost) {
+        try {
+            createPeerConnection();
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            socket.emit('offer', { room: roomId, offer: offer });
+        } catch (err) {
+            console.error('Offer oluşturma hatası:', err);
+        }
+    }
+});
+
+// Kullanıcı ayrıldığında
+socket.on('user_disconnected', () => {
+    document.getElementById('waitingScreen').style.display = 'flex';
+    document.getElementById('waitingScreen').innerHTML = 
+        '<div class="text-center">Diğer katılımcı ayrıldı. Bağlantı bekleniyor...</div>';
+    
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+    
+    if (remoteStream) {
+        remoteStream.getTracks().forEach(track => track.stop());
+        document.getElementById('remoteVideo').srcObject = null;
+    }
+});
+
+// Offer işlemleri
+socket.on('offer', async (data) => {
+    if (isHost) {
+        createPeerConnection();
+        await peerConnection.setRemoteDescription(data.offer);
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        socket.emit('answer', { room: roomId, answer: answer });
+    }
+});
+
+// Answer işlemleri
+socket.on('answer', async (data) => {
+    if (!isHost) {
+        await peerConnection.setRemoteDescription(data.answer);
+    }
+});
+
+// ICE Candidate işlemleri
+socket.on('ice-candidate', async (data) => {
+    try {
+        if (peerConnection) {
+            await peerConnection.addIceCandidate(data.candidate);
+        }
+    } catch (err) {
+        console.error('ICE Candidate hatası:', err);
+    }
+});
+
+function createPeerConnection() {
+    peerConnection = new RTCPeerConnection(configuration);
+    
+    // Yerel medya akışını ekle
+    localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+    });
+
+    // Uzak medya akışını al
+    peerConnection.ontrack = (event) => {
+        document.getElementById('remoteVideo').srcObject = event.streams[0];
+        document.getElementById('waitingScreen').style.display = 'none';
+    };
+
+    // ICE Candidate olayları
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            socket.emit('ice-candidate', {
+                room: roomId,
+                candidate: event.candidate
+            });
+        }
+    };
+}
+
+// Kontrol butonları
+document.getElementById('muteBtn').onclick = () => {
+    const audioTrack = localStream.getAudioTracks()[0];
+    audioTrack.enabled = !audioTrack.enabled;
+    document.getElementById('muteBtn').classList.toggle('muted');
+    document.getElementById('muteBtn').innerHTML = 
+        audioTrack.enabled ? '<i class="fas fa-microphone"></i>' : '<i class="fas fa-microphone-slash"></i>';
+};
+
+document.getElementById('videoBtn').onclick = () => {
+    const videoTrack = localStream.getVideoTracks()[0];
+    videoTrack.enabled = !videoTrack.enabled;
+    document.getElementById('videoBtn').classList.toggle('muted');
+    document.getElementById('videoBtn').innerHTML = 
+        videoTrack.enabled ? '<i class="fas fa-video"></i>' : '<i class="fas fa-video-slash"></i>';
+};
+
+document.getElementById('endBtn').onclick = () => {
+    if (confirm('Görüşmeyi sonlandırmak istediğinize emin misiniz?')) {
+        localStream.getTracks().forEach(track => track.stop());
+        if (peerConnection) {
+            peerConnection.close();
+        }
+        socket.disconnect();
+        window.location.href = '/profile';
+    }
+};
+
+// Chat fonksiyonları
+document.getElementById('sendBtn').onclick = () => {
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    if (message) {
+        socket.emit('chat-message', { room: roomId, message: message });
+        addMessage(message, true);
+        input.value = '';
+    }
+};
+
+document.getElementById('messageInput').onkeypress = (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById('sendBtn').click();
+    }
+};
+
+socket.on('chat-message', (data) => {
+    addMessage(data.message, false);
+});
+
+function addMessage(message, sent) {
+    const messagesDiv = document.getElementById('chatMessages');
+    const messageElement = document.createElement('div');
+    messageElement.className = `message ${sent ? 'sent' : 'received'}`;
+    messageElement.textContent = message;
+    messagesDiv.appendChild(messageElement);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+// Sayfa yüklendiğinde bekleme ekranını göster
+document.getElementById('waitingScreen').style.display = 'flex';
+</script>
+{% endblock %}

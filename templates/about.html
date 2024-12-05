@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header py-5 bg-light">
+    <div class="container">
+        <h1 class="text-center">Hakkımızda</h1>
+        <p class="text-center lead">Hamle Psikoloji'nin kuruluşu ve misyonu hakkında bilgi edinin.</p>
+    </div>
+</section>
+
+<section class="about-content py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h2>Kuruluşumuz</h2>
+                <p>Hamle Psikoloji, 2023 yılında, bireylerin ruh sağlığını desteklemek ve psikolojik danışmanlık hizmetleri sunmak amacıyla kurulmuştur. Uzman kadromuz, çeşitli terapötik yaklaşımlar kullanarak danışanların duygusal ve zihinsel sağlığını geliştirmeyi hedeflemektedir.</p>
+                <p>Misyonumuz, her bireyin kendini daha iyi hissetmesine yardımcı olmak ve sağlıklı bir yaşam sürdürmesini sağlamaktır. Vizyonumuz ise, psikolojik destek hizmetlerinin toplumda daha erişilebilir hale gelmesini sağlamak ve ruh sağlığı alanında farkındalığı artırmaktır.</p>
+            </div>
+            <div class="col-md-6">
+                <img src="https://via.placeholder.com/600x300" alt="Kuruluş Resmi" class="img-fluid rounded mb-3">
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="team py-5">
+    <div class="container">
+        <h2 class="text-center">Uzman Kadromuz</h2>
+        <div class="row">
+            {% for psychologist in psychologists %}
+            <div class="col-md-4">
+                <div class="card mb-4" style="background-color: rgba(152, 255, 152, 0.5);">
+                    <img src="{{ psychologist.image_url }}" class="expert-img" alt="{{ psychologist.name }}" onerror="this.onerror=null; this.src='https://via.placeholder.com/200';" style="border-radius: 50%;">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ psychologist.name }}</h5>
+                        <p class="card-text">{{ psychologist.title }}</p>
+                        <p class="card-text">{{ psychologist.specialization }}</p>
+                        <p class="card-text">{{ psychologist.bio }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+{% endblock %}
