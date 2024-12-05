@@ -3,8 +3,25 @@ services:
     name: psikoloji-app
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --worker-class eventlet -w 1 --threads 4 wsgi:app
+    startCommand: >
+      gunicorn 
+      --worker-class eventlet 
+      --workers 1 
+      --threads 8 
+      --timeout 120 
+      --keep-alive 65 
+      --backlog 100
+      --max-requests 1000 
+      --max-requests-jitter 50 
+      --log-level info
+      wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.12
+      - key: FLASK_ENV
+        value: production
+      - key: WEB_CONCURRENCY
+        value: "1"
+    healthCheckPath: /
+    autoDeploy: false
     plan: free

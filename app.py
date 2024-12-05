@@ -16,6 +16,12 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 import traceback
 import json
 from models import db, User, Psychologist, Availability, Appointment, BlogPost, Settings, TestResult, Session
+import logging
+import time
+
+# Logging konfigürasyonu
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -1092,61 +1098,90 @@ def save_appointment():
         }), 500
 
 # Global değişkenler
-room_participants = {}
+active_rooms = {}
+client_rooms = {}
 
-# Socket.IO yapılandırması
-socketio = SocketIO(app, 
-                   cors_allowed_origins="*",
-                   async_mode='eventlet',
-                   ping_timeout=60,
-                   ping_interval=25,
-                   max_http_buffer_size=5e6,
-                   manage_session=False,
-                   logger=True,
-                   engineio_logger=True,
-                   message_queue='memory://')
+# SocketIO yapılandırması
+socketio = SocketIO(
+    app,
+    async_mode='eventlet',
+    ping_timeout=60,
+    ping_interval=25,
+    cors_allowed_origins="*",
+    manage_session=False,
+    logger=logger,
+    engineio_logger=logger,
+    max_http_buffer_size=5e8,  # 500MB
+    async_handlers=True
+)
 
 @socketio.on('connect')
 def handle_connect():
-    app.logger.info(f'Client connected: {request.sid}')
+    logger.info(f"Client connected: {request.sid}")
+    client_rooms[request.sid] = set()
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    app.logger.info(f'Client disconnected: {request.sid}')
-    # Kullanıcı bağlantısı koptuğunda odadan çıkar
-    for room in list(room_participants.keys()):  # list() ile kopyasını al
-        if request.sid in room_participants[room]:
-            room_participants[room].remove(request.sid)
-            emit('user_left', {'count': len(room_participants[room])}, room=room)
+    sid = request.sid
+    if sid in client_rooms:
+        # Kullanıcının tüm odalardan çıkışını sağla
+        rooms = client_rooms[sid].copy()
+        for room in rooms:
+            leave_session(room)
+        del client_rooms[sid]
+    logger.info(f"Client disconnected: {sid}")
 
 @socketio.on('join')
-def on_join(data):
+def join_session(room):
     try:
-        room = data['room']
+        current_time = time.time()
         join_room(room)
-        if room not in room_participants:
-            room_participants[room] = set()
-        room_participants[room].add(request.sid)
-        app.logger.info(f'Client {request.sid} joined room {room}')
-        emit('joined', {'count': len(room_participants[room])}, room=room)
+        client_rooms[request.sid].add(room)
+        
+        if room not in active_rooms:
+            active_rooms[room] = {'clients': set(), 'last_activity': current_time}
+        
+        active_rooms[room]['clients'].add(request.sid)
+        active_rooms[room]['last_activity'] = current_time
+        
+        # Oda bilgilerini güncelle
+        num_clients = len(active_rooms[room]['clients'])
+        logger.info(f"Client {request.sid} joined room {room}. Total clients: {num_clients}")
+        
+        emit('room_join', {
+            'room': room,
+            'count': num_clients
+        }, room=room)
     except Exception as e:
-        app.logger.error(f'Error in join event: {str(e)}')
+        logger.error(f"Error in join_session: {str(e)}")
+        emit('error', {'message': 'Failed to join session'})
 
 @socketio.on('leave')
-def on_leave(data):
+def leave_session(room):
     try:
-        room = data['room']
+        if room in client_rooms.get(request.sid, set()):
+            client_rooms[request.sid].remove(room)
+            
+        if room in active_rooms:
+            active_rooms[room]['clients'].discard(request.sid)
+            if not active_rooms[room]['clients']:
+                del active_rooms[room]
+            else:
+                num_clients = len(active_rooms[room]['clients'])
+                emit('room_leave', {
+                    'room': room,
+                    'count': num_clients
+                }, room=room)
+        
         leave_room(room)
-        if room in room_participants and request.sid in room_participants[room]:
-            room_participants[room].remove(request.sid)
-            app.logger.info(f'Client {request.sid} left room {room}')
-            emit('user_left', {'count': len(room_participants[room])}, room=room)
+        logger.info(f"Client {request.sid} left room {room}")
     except Exception as e:
-        app.logger.error(f'Error in leave event: {str(e)}')
+        logger.error(f"Error in leave_session: {str(e)}")
 
-@socketio.on_error_default
-def default_error_handler(e):
-    app.logger.error(f'SocketIO error: {str(e)}')
+@socketio.on_error()
+def error_handler(e):
+    logger.error(f"SocketIO error: {str(e)}")
+    emit('error', {'message': 'An error occurred'})
 
 @socketio.on('offer')
 def on_offer(data):
