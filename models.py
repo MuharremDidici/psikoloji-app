@@ -81,15 +81,14 @@ class Appointment(db.Model):
     is_online = db.Column(db.Boolean, default=False)
     status = db.Column(db.String(20), default='pending')
     date_requested = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # İlişki tanımlamaları
+
+    # Sadece foreign key ilişkileri
     therapist = db.relationship('Psychologist', 
                               foreign_keys=[psychologist_id],
-                              backref=db.backref('therapist_appointments', lazy=True),
                               overlaps="appointments,psychologist")
+    
     user = db.relationship('User', 
                          foreign_keys=[user_id],
-                         backref=db.backref('user_appointments', lazy=True),
                          overlaps="appointments,client")
 
 class BlogPost(db.Model):
