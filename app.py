@@ -1091,7 +1091,7 @@ import uuid
 
 socketio = SocketIO(app, 
                    cors_allowed_origins="*",
-                   async_mode='eventlet',
+                   async_mode=None,  # Auto-detect
                    ping_timeout=60,
                    ping_interval=25,
                    max_http_buffer_size=5e6,

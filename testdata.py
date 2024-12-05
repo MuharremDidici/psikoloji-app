@@ -3,6 +3,11 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash
 
 def create_test_data(db):
+    # Önce mevcut verileri kontrol et
+    if User.query.filter_by(username="test_user2").first() is not None:
+        print("Test verileri zaten mevcut")
+        return
+
     # Danışan kullanıcısı oluştur
     test_user = User(
         username="test_user2",
@@ -16,7 +21,7 @@ def create_test_data(db):
     # Terapist kullanıcısı oluştur
     therapist_user = User(
         username="ayse_dr",
-        email="ayse2@example.com",
+        email="ayse_dr@example.com",
         password_hash=generate_password_hash("therapist123"),
         is_admin=True,
         is_psychologist=True  # Terapist
@@ -28,7 +33,7 @@ def create_test_data(db):
         name="Dr. Ayşe Yılmaz",
         title="Klinik Psikolog",
         specialization="Bilişsel Davranışçı Terapi",
-        email="ayse2@example.com",
+        email="ayse_dr@example.com",
         phone="5551234567"
     )
     db.session.add(test_therapist)
