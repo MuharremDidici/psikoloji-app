@@ -1118,7 +1118,7 @@ socketio = SocketIO(
     async_handlers=True
 )
 
-@app.before_first_request
+# Initialize managers
 def setup_managers():
     try:
         redis_manager.init()
@@ -1126,6 +1126,10 @@ def setup_managers():
     except Exception as e:
         logger.error(f"Failed to initialize managers: {e}")
         raise
+
+# Call setup_managers when app starts
+with app.app_context():
+    setup_managers()
 
 @socketio.on('connect')
 def handle_connect():
