@@ -21,6 +21,11 @@ app.config['WTF_CSRF_TIME_LIMIT'] = None
 app.config['WTF_CSRF_SSL_STRICT'] = False
 
 db.init_app(app)
+
+# Veritabanı tablolarını oluştur
+with app.app_context():
+    db.create_all()
+    
 migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
