@@ -19,12 +19,13 @@ class User(UserMixin, db.Model):
     
     # Ana randevu ilişkisi
     appointments = db.relationship('Appointment',
-                                 backref=db.backref('client', lazy=True),
+                                 backref='client',
+                                 lazy=True,
                                  foreign_keys='Appointment.user_id')
     
     # İkincil randevu ilişkisi (viewonly)
     user_appointments = db.relationship('Appointment',
-                                      backref=db.backref('user_ref', lazy=True),
+                                      lazy=True,
                                       foreign_keys='Appointment.user_id',
                                       overlaps="appointments,client",
                                       viewonly=True)
@@ -48,12 +49,13 @@ class Psychologist(db.Model):
     
     # Ana randevu ilişkisi
     appointments = db.relationship('Appointment',
-                                 backref=db.backref('psychologist', lazy=True),
+                                 backref='psychologist',
+                                 lazy=True,
                                  foreign_keys='Appointment.psychologist_id')
     
     # İkincil randevu ilişkisi (viewonly)
     therapist_appointments = db.relationship('Appointment',
-                                           backref=db.backref('therapist_ref', lazy=True),
+                                           lazy=True,
                                            foreign_keys='Appointment.psychologist_id',
                                            overlaps="appointments,psychologist",
                                            viewonly=True)
