@@ -1091,16 +1091,27 @@ import uuid
 
 socketio = SocketIO(app, 
                    cors_allowed_origins="*",
-                   async_mode=None,  # Auto-detect
-                   ping_timeout=60,
-                   ping_interval=25,
+                   async_mode='threading',
+                   ping_timeout=120,
+                   ping_interval=30,
                    max_http_buffer_size=5e6,
                    manage_session=True,
                    logger=True,
-                   engineio_logger=True)
+                   engineio_logger=True,
+                   allow_upgrades=True,
+                   websocket_class=WebSocket)
 
-# Oda durumlarını takip etmek için global değişken
-room_participants = {}
+@socketio.on('connect')
+def handle_connect():
+    app.logger.info(f'Client connected: {request.sid}')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    app.logger.info(f'Client disconnected: {request.sid}')
+
+@socketio.on_error_default
+def default_error_handler(e):
+    app.logger.error(f'SocketIO error: {str(e)}')
 
 @socketio.on('join')
 def on_join(data):

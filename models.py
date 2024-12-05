@@ -53,10 +53,14 @@ class Appointment(db.Model):
     client_name = db.Column(db.String(100), nullable=False)
     client_email = db.Column(db.String(120), nullable=False)
     appointment_date = db.Column(db.DateTime, nullable=False)
-    appointment_type = db.Column(db.String(20), nullable=False)
+    appointment_type = db.Column(db.String(50), nullable=False)
     is_online = db.Column(db.Boolean, default=False)
     status = db.Column(db.String(20), default='pending')
     date_requested = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # İlişki tanımlamaları
+    user = db.relationship('User', backref='appointments')
+    therapist = db.relationship('Psychologist', backref='appointments')
 
 class BlogPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
