@@ -1162,13 +1162,17 @@ def join_session(data):
                 room = webrtc_manager.create_room(room_id)
                 metrics_manager.room_created.inc()
             
+            # İlk katılımcı publisher olsun
+            is_publisher = len(webrtc_manager.get_room_participants(room_id)) == 0
+            
             # Add participant
-            participant = webrtc_manager.add_participant(room_id, sid)
+            participant = webrtc_manager.add_participant(room_id, sid, is_publisher=is_publisher)
             
             # Update Redis
             redis_manager.set_participant_status(room_id, sid, {
                 'joined_at': time.time(),
-                'room_id': room_id
+                'room_id': room_id,
+                'is_publisher': is_publisher
             })
             
             # Update metrics
@@ -1188,10 +1192,10 @@ def join_session(data):
                 'room': room_id,
                 'count': len(participants),
                 'participants': participant_list,
-                'you': {'id': sid, 'is_publisher': False}
+                'you': {'id': sid, 'is_publisher': is_publisher}
             }, room=room_id)
             
-            logger.info(f"Client {sid} joined room {room_id}")
+            logger.info(f"Client {sid} joined room {room_id} as {'publisher' if is_publisher else 'viewer'}")
             
         except Exception as e:
             logger.error(f"Error in join_session: {e}")
