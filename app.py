@@ -11,7 +11,6 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 import traceback
 import json
 from models import db, User, Psychologist, Availability, Appointment, BlogPost, Settings, TestResult, Session
-from flask_talisman import Talisman
 import eventlet
 
 app = Flask(__name__)
@@ -21,10 +20,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['WTF_CSRF_TIME_LIMIT'] = None
 app.config['WTF_CSRF_SSL_STRICT'] = False
-
-# Production için güvenlik ayarları
-if not app.debug:
-    Talisman(app, content_security_policy=None)
 
 db.init_app(app)
 migrate = Migrate(app, db)
