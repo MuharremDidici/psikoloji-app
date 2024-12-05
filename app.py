@@ -18,6 +18,10 @@ import json
 from models import db, User, Psychologist, Availability, Appointment, BlogPost, Settings, TestResult, Session
 import logging
 import time
+import asyncio
+from webrtc_manager import webrtc_manager
+from redis_manager import redis_manager
+from metrics_manager import metrics_manager
 
 # Logging konfigürasyonu
 logging.basicConfig(level=logging.INFO)
@@ -1115,93 +1119,120 @@ socketio = SocketIO(
     async_handlers=True
 )
 
+@app.before_first_request
+async def setup_managers():
+    try:
+        await redis_manager.init()
+        logger.info("Managers initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize managers: {e}")
+        raise
+
 @socketio.on('connect')
-def handle_connect():
+async def handle_connect():
     logger.info(f"Client connected: {request.sid}")
-    client_rooms[request.sid] = set()
+    metrics_manager.participant_joined.inc()
 
 @socketio.on('disconnect')
-def handle_disconnect():
-    sid = request.sid
-    if sid in client_rooms:
-        # Kullanıcının tüm odalardan çıkışını sağla
-        rooms = client_rooms[sid].copy()
-        for room in rooms:
-            leave_session(room)
-        del client_rooms[sid]
-    logger.info(f"Client disconnected: {sid}")
+async def handle_disconnect():
+    try:
+        sid = request.sid
+        room_data = await redis_manager.get_participant_status(None, sid)
+        if room_data and 'room_id' in room_data:
+            await webrtc_manager.remove_participant(room_data['room_id'], sid)
+            metrics_manager.active_participants.dec()
+        logger.info(f"Client disconnected: {sid}")
+    except Exception as e:
+        logger.error(f"Error in disconnect handler: {e}")
+        metrics_manager.record_error("disconnect_error")
 
 @socketio.on('join')
-def join_session(room):
-    try:
-        current_time = time.time()
-        join_room(room)
-        client_rooms[request.sid].add(room)
-        
-        if room not in active_rooms:
-            active_rooms[room] = {'clients': set(), 'last_activity': current_time}
-        
-        active_rooms[room]['clients'].add(request.sid)
-        active_rooms[room]['last_activity'] = current_time
-        
-        # Oda bilgilerini güncelle
-        num_clients = len(active_rooms[room]['clients'])
-        logger.info(f"Client {request.sid} joined room {room}. Total clients: {num_clients}")
-        
-        emit('room_join', {
-            'room': room,
-            'count': num_clients
-        }, room=room)
-    except Exception as e:
-        logger.error(f"Error in join_session: {str(e)}")
-        emit('error', {'message': 'Failed to join session'})
-
-@socketio.on('leave')
-def leave_session(room):
-    try:
-        if room in client_rooms.get(request.sid, set()):
-            client_rooms[request.sid].remove(room)
+async def join_session(data):
+    with metrics_manager.track_connection_setup():
+        try:
+            room_id = data['room']
+            sid = request.sid
             
-        if room in active_rooms:
-            active_rooms[room]['clients'].discard(request.sid)
-            if not active_rooms[room]['clients']:
-                del active_rooms[room]
-            else:
-                num_clients = len(active_rooms[room]['clients'])
-                emit('room_leave', {
-                    'room': room,
-                    'count': num_clients
-                }, room=room)
-        
-        leave_room(room)
-        logger.info(f"Client {request.sid} left room {room}")
-    except Exception as e:
-        logger.error(f"Error in leave_session: {str(e)}")
-
-@socketio.on_error()
-def error_handler(e):
-    logger.error(f"SocketIO error: {str(e)}")
-    emit('error', {'message': 'An error occurred'})
+            # Create or get room
+            room = await webrtc_manager.get_room(room_id)
+            if not room:
+                room = await webrtc_manager.create_room(room_id)
+                metrics_manager.room_created.inc()
+            
+            # Add participant
+            participant = await webrtc_manager.add_participant(room_id, sid)
+            
+            # Update Redis
+            await redis_manager.set_participant_status(room_id, sid, {
+                'joined_at': time.time(),
+                'room_id': room_id
+            })
+            
+            # Update metrics
+            metrics_manager.active_participants.inc()
+            metrics_manager.active_rooms.set(len(webrtc_manager.rooms))
+            
+            # Join room
+            join_room(room_id)
+            
+            # Notify room
+            emit('room_join', {
+                'room': room_id,
+                'count': len(room.participants)
+            }, room=room_id)
+            
+            logger.info(f"Client {sid} joined room {room_id}")
+            
+        except Exception as e:
+            logger.error(f"Error in join_session: {e}")
+            metrics_manager.record_error("join_error")
+            emit('error', {'message': 'Failed to join session'})
 
 @socketio.on('offer')
-def on_offer(data):
-    room = data['room']
-    emit('offer', {'offer': data['offer']}, room=room, include_self=False)
-
-@socketio.on('answer')
-def on_answer(data):
-    room = data['room']
-    emit('answer', {'answer': data['answer']}, room=room, include_self=False)
+async def handle_offer(data):
+    try:
+        room_id = data['room']
+        sid = request.sid
+        offer = data['offer']
+        
+        # Process WebRTC offer
+        answer = await webrtc_manager.process_offer(room_id, sid, offer)
+        
+        # Update participant status
+        await redis_manager.set_participant_status(room_id, sid, {
+            'last_offer': time.time()
+        })
+        
+        # Send answer back
+        emit('answer', {'answer': answer.sdp})
+        
+    except Exception as e:
+        logger.error(f"Error processing offer: {e}")
+        metrics_manager.record_error("offer_error")
+        emit('error', {'message': 'Failed to process offer'})
 
 @socketio.on('ice-candidate')
-def on_ice_candidate(data):
-    room = data['room']
-    emit('ice-candidate', {'candidate': data['candidate']}, room=room, include_self=False)
+async def handle_ice_candidate(data):
+    try:
+        room_id = data['room']
+        candidate = data['candidate']
+        
+        room = await webrtc_manager.get_room(room_id)
+        if room:
+            # Forward candidate to other participants
+            for participant_id in room.participants:
+                if participant_id != request.sid:
+                    emit('ice-candidate', {
+                        'candidate': candidate
+                    }, room=participant_id)
+    except Exception as e:
+        logger.error(f"Error handling ICE candidate: {e}")
+        metrics_manager.record_error("ice_error")
 
 @socketio.on('chat-message')
-def on_chat_message(data):
-    room = data['room']
-    emit('chat-message', {'message': data['message']}, room=room, include_self=False)
+async def on_chat_message(data):
+    room_id = data['room']
+    emit('chat-message', {'message': data['message']}, room=room_id, include_self=False)
 
 @app.route('/session/<appointment_id>')
 @login_required
