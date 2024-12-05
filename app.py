@@ -1094,14 +1094,14 @@ room_participants = {}
 # Socket.IO yapılandırması
 socketio = SocketIO(app, 
                    cors_allowed_origins="*",
-                   async_mode='threading',
-                   ping_timeout=120,
-                   ping_interval=30,
+                   async_mode='eventlet',
+                   ping_timeout=60,
+                   ping_interval=25,
                    max_http_buffer_size=5e6,
-                   manage_session=True,
+                   manage_session=False,
                    logger=True,
                    engineio_logger=True,
-                   allow_upgrades=True)
+                   message_queue='memory://')
 
 @socketio.on('connect')
 def handle_connect():
@@ -1111,7 +1111,7 @@ def handle_connect():
 def handle_disconnect():
     app.logger.info(f'Client disconnected: {request.sid}')
     # Kullanıcı bağlantısı koptuğunda odadan çıkar
-    for room in room_participants.keys():
+    for room in list(room_participants.keys()):  # list() ile kopyasını al
         if request.sid in room_participants[room]:
             room_participants[room].remove(request.sid)
             emit('user_left', {'count': len(room_participants[room])}, room=room)
