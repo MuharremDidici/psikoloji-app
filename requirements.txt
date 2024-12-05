@@ -15,6 +15,7 @@ redis==4.3.4
 aioredis==2.0.1
 prometheus-client==0.16.0
 websockets==10.4
+simple-websocket==0.10.1
 pyOpenSSL==23.2.0
 cryptography==41.0.1
 python-dotenv==1.0.0

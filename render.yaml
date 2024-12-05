@@ -3,7 +3,17 @@ services:
     name: psikoloji-app
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --worker-class eventlet -w 1 wsgi:app
+    startCommand: >
+      gunicorn 
+      --worker-class eventlet 
+      --workers 1 
+      --timeout 120 
+      --keep-alive 65 
+      --log-level info
+      --access-logfile - 
+      --error-logfile - 
+      --worker-connections 1000
+      wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.12
@@ -24,6 +34,8 @@ services:
         value: 25
       - key: WEBSOCKET_PING_TIMEOUT
         value: 60
+      - key: EVENTLET_MONKEY_PATCH
+        value: 1
     healthCheckPath: /health
     autoDeploy: true
     plan: starter
