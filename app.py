@@ -1224,71 +1224,99 @@ def leave_session(data):
 @socketio.on('signal')
 def handle_signal(data):
     try:
-        room_id = data['room']
-        target_id = data['target']
-        signal_data = data['signal']
+        room_id = data.get('room')
+        target_id = data.get('target')
+        signal_type = data.get('type')
+        signal_data = data.get('data')
         
-        # Forward signal to target participant
+        if not all([room_id, target_id, signal_type, signal_data]):
+            logger.error("Missing required signal data")
+            return
+            
+        logger.info(f"Signal {signal_type} from {request.sid} to {target_id} in room {room_id}")
+        
+        # Signal'i hedef katılımcıya ilet
         emit('signal', {
-            'from': request.sid,
-            'signal': signal_data
+            'sender': request.sid,
+            'type': signal_type,
+            'data': signal_data
         }, room=target_id)
         
     except Exception as e:
-        logger.error(f"Error handling signal: {e}")
+        logger.error(f"Error in handle_signal: {e}")
         metrics_manager.record_error("signal_error")
-
-@socketio.on('ping')
-def handle_ping():
-    try:
-        sid = request.sid
-        room_data = redis_manager.get_participant_status(None, sid)
-        if room_data and 'room_id' in room_data:
-            webrtc_manager.update_participant_ping(room_data['room_id'], sid)
-            redis_manager.update_participant_status(room_data['room_id'], sid, {'last_ping': time.time()})
-    except Exception as e:
-        logger.error(f"Error handling ping: {e}")
-        metrics_manager.record_error("ping_error")
 
 @socketio.on('offer')
 def handle_offer(data):
     try:
-        room_id = data['room']
-        sid = request.sid
-        offer = data['offer']
+        room_id = data.get('room')
+        target_id = data.get('target')
+        sdp = data.get('sdp')
         
-        # Process WebRTC offer
-        answer = webrtc_manager.process_offer(room_id, sid, offer)
+        if not all([room_id, target_id, sdp]):
+            logger.error("Missing required offer data")
+            return
+            
+        logger.info(f"Offer from {request.sid} to {target_id} in room {room_id}")
         
-        # Update participant status
-        redis_manager.set_participant_status(room_id, sid, {
-            'last_offer': time.time()
-        })
+        # SDP teklifini hedef katılımcıya ilet
+        emit('offer', {
+            'sender': request.sid,
+            'sdp': sdp
+        }, room=target_id)
         
-        # Send answer back
-        emit('answer', {'answer': answer.sdp})
+        # Metrikleri güncelle
+        with metrics_manager.track_connection_setup():
+            pass
+            
+    except Exception as e:
+        logger.error(f"Error in handle_offer: {e}")
+        metrics_manager.record_error("offer_error")
+
+@socketio.on('answer')
+def handle_answer(data):
+    try:
+        room_id = data.get('room')
+        target_id = data.get('target')
+        sdp = data.get('sdp')
+        
+        if not all([room_id, target_id, sdp]):
+            logger.error("Missing required answer data")
+            return
+            
+        logger.info(f"Answer from {request.sid} to {target_id} in room {room_id}")
+        
+        # SDP cevabını hedef katılımcıya ilet
+        emit('answer', {
+            'sender': request.sid,
+            'sdp': sdp
+        }, room=target_id)
         
     except Exception as e:
-        logger.error(f"Error processing offer: {e}")
-        metrics_manager.record_error("offer_error")
-        emit('error', {'message': 'Failed to process offer'})
+        logger.error(f"Error in handle_answer: {e}")
+        metrics_manager.record_error("answer_error")
 
-@socketio.on('ice-candidate')
+@socketio.on('ice_candidate')
 def handle_ice_candidate(data):
     try:
-        room_id = data['room']
-        candidate = data['candidate']
+        room_id = data.get('room')
+        target_id = data.get('target')
+        candidate = data.get('candidate')
         
-        room = webrtc_manager.get_room(room_id)
-        if room:
-            # Forward candidate to other participants
-            for participant_id in room.participants:
-                if participant_id != request.sid:
-                    emit('ice-candidate', {
-                        'candidate': candidate
-                    }, room=participant_id)
+        if not all([room_id, target_id, candidate]):
+            logger.error("Missing required ICE candidate data")
+            return
+            
+        logger.info(f"ICE candidate from {request.sid} to {target_id} in room {room_id}")
+        
+        # ICE adayını hedef katılımcıya ilet
+        emit('ice_candidate', {
+            'sender': request.sid,
+            'candidate': candidate
+        }, room=target_id)
+        
     except Exception as e:
-        logger.error(f"Error handling ICE candidate: {e}")
+        logger.error(f"Error in handle_ice_candidate: {e}")
         metrics_manager.record_error("ice_error")
 
 @socketio.on('chat-message')
