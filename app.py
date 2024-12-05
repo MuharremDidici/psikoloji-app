@@ -27,8 +27,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///psikoloji.db'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///psikoloji.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['WTF_CSRF_TIME_LIMIT'] = None
@@ -1107,15 +1107,12 @@ client_rooms = {}
 # SocketIO yapılandırması
 socketio = SocketIO(
     app,
-    async_mode='eventlet',
-    ping_timeout=60,
-    ping_interval=25,
     cors_allowed_origins="*",
-    manage_session=False,
-    logger=logger,
-    engineio_logger=logger,
-    max_http_buffer_size=5e8,  # 500MB
-    async_handlers=True
+    async_mode='eventlet',
+    ping_timeout=120,
+    ping_interval=60,
+    max_http_buffer_size=1e8,
+    manage_session=False
 )
 
 # Initialize managers
