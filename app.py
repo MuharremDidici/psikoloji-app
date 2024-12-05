@@ -1091,11 +1091,13 @@ import uuid
 
 socketio = SocketIO(app, 
                    cors_allowed_origins="*",
-                   async_mode='threading',
-                   ping_timeout=120,
-                   ping_interval=30,
-                   max_http_buffer_size=10e6,
-                   manage_session=False)
+                   async_mode='eventlet',
+                   ping_timeout=60,
+                   ping_interval=25,
+                   max_http_buffer_size=5e6,
+                   manage_session=True,
+                   logger=True,
+                   engineio_logger=True)
 
 # Oda durumlarını takip etmek için global değişken
 room_participants = {}
