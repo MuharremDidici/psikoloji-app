@@ -11,7 +11,6 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 import traceback
 import json
 from models import db, User, Psychologist, Availability, Appointment, BlogPost, Settings, TestResult, Session
-import eventlet
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
