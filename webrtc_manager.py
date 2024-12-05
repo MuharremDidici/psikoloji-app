@@ -1,137 +1,107 @@
-import asyncio
 import logging
-import uuid
-from typing import Dict, Optional, Set
+import time
+from typing import Dict, Optional, List
 from dataclasses import dataclass, field
-from dataclasses_json import dataclass_json
-from datetime import datetime
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
-
-@dataclass_json
-@dataclass
-class Room:
-    room_id: str
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    max_participants: int = 2
-    participants: Dict[str, 'Participant'] = field(default_factory=dict)
-    active: bool = True
 
 @dataclass
 class Participant:
     id: str
-    room_id: str
-    last_ping: datetime = field(default_factory=datetime.utcnow)
     is_publisher: bool = False
+    last_ping: float = field(default_factory=time.time)
     
+@dataclass
+class Room:
+    id: str
+    participants: Dict[str, Participant] = field(default_factory=dict)
+    created_at: float = field(default_factory=time.time)
+
 class WebRTCManager:
     def __init__(self):
         self.rooms: Dict[str, Room] = {}
-        self._cleanup_task = None
-        self.start_cleanup_task()
-
-    def start_cleanup_task(self):
-        if self._cleanup_task is None:
-            self._cleanup_task = asyncio.create_task(self._periodic_cleanup())
-
-    async def _periodic_cleanup(self):
-        while True:
-            try:
-                await self._cleanup_inactive_rooms()
-                await asyncio.sleep(60)
-            except Exception as e:
-                logger.error(f"Cleanup error: {e}")
-
-    async def _cleanup_inactive_rooms(self):
-        now = datetime.utcnow()
-        inactive_rooms = []
         
-        for room_id, room in self.rooms.items():
-            if not room.active or not room.participants:
-                inactive_rooms.append(room_id)
-                continue
-                
-            inactive_participants = []
-            for participant_id, participant in room.participants.items():
-                if (now - participant.last_ping).total_seconds() > 30:
-                    inactive_participants.append(participant_id)
-                    
-            for participant_id in inactive_participants:
-                await self.remove_participant(room_id, participant_id)
-                
-        for room_id in inactive_rooms:
-            await self.close_room(room_id)
-
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    async def create_room(self, room_id: Optional[str] = None) -> Room:
-        room_id = room_id or str(uuid.uuid4())
+    def create_room(self, room_id: str) -> Room:
+        """Create a new room"""
         if room_id in self.rooms:
-            raise ValueError("Room already exists")
+            logger.warning(f"Room {room_id} already exists")
+            return self.rooms[room_id]
             
-        room = Room(room_id=room_id)
+        room = Room(id=room_id)
         self.rooms[room_id] = room
-        logger.info(f"Created room: {room_id}")
+        logger.info(f"Created room {room_id}")
         return room
-
-    async def get_room(self, room_id: str) -> Optional[Room]:
-        return self.rooms.get(room_id)
-
-    async def add_participant(self, room_id: str, participant_id: str, is_publisher: bool = False) -> Participant:
-        room = await self.get_room(room_id)
-        if not room:
-            raise ValueError("Room not found")
-            
-        if len(room.participants) >= room.max_participants:
-            raise ValueError("Room is full")
-            
-        if participant_id in room.participants:
-            raise ValueError("Participant already in room")
-            
-        participant = Participant(
-            id=participant_id,
-            room_id=room_id,
-            is_publisher=is_publisher
-        )
         
+    def get_room(self, room_id: str) -> Optional[Room]:
+        """Get room by ID"""
+        return self.rooms.get(room_id)
+        
+    def add_participant(self, room_id: str, participant_id: str, is_publisher: bool = False) -> Participant:
+        """Add participant to room"""
+        room = self.get_room(room_id)
+        if not room:
+            room = self.create_room(room_id)
+            
+        participant = Participant(id=participant_id, is_publisher=is_publisher)
         room.participants[participant_id] = participant
         logger.info(f"Added participant {participant_id} to room {room_id}")
         return participant
-
-    async def remove_participant(self, room_id: str, participant_id: str):
-        room = await self.get_room(room_id)
-        if not room:
-            return
-            
-        if participant_id in room.participants:
+        
+    def remove_participant(self, room_id: str, participant_id: str):
+        """Remove participant from room"""
+        room = self.get_room(room_id)
+        if room and participant_id in room.participants:
             del room.participants[participant_id]
             logger.info(f"Removed participant {participant_id} from room {room_id}")
-        
-        if not room.participants:
-            await self.close_room(room_id)
-
-    async def close_room(self, room_id: str):
-        room = self.rooms.pop(room_id, None)
-        if room:
-            room.active = False
-            logger.info(f"Closed room: {room_id}")
-
-    async def update_participant_ping(self, room_id: str, participant_id: str):
-        room = await self.get_room(room_id)
-        if room and participant_id in room.participants:
-            room.participants[participant_id].last_ping = datetime.utcnow()
-
-    async def get_room_participants(self, room_id: str) -> Dict[str, Participant]:
-        room = await self.get_room(room_id)
+            
+            # Clean up empty room
+            if not room.participants:
+                del self.rooms[room_id]
+                logger.info(f"Removed empty room {room_id}")
+                
+    def get_room_participants(self, room_id: str) -> Dict[str, Participant]:
+        """Get all participants in a room"""
+        room = self.get_room(room_id)
         return room.participants if room else {}
-
-    async def get_publisher(self, room_id: str) -> Optional[Participant]:
-        room = await self.get_room(room_id)
-        if room:
-            for participant in room.participants.values():
-                if participant.is_publisher:
-                    return participant
-        return None
+        
+    def update_participant_ping(self, room_id: str, participant_id: str):
+        """Update participant's last ping time"""
+        room = self.get_room(room_id)
+        if room and participant_id in room.participants:
+            room.participants[participant_id].last_ping = time.time()
+            
+    def cleanup_inactive_rooms(self, max_inactive_time: int = 300):
+        """Remove inactive rooms and participants"""
+        current_time = time.time()
+        rooms_to_remove = []
+        
+        for room_id, room in self.rooms.items():
+            # Remove inactive participants
+            inactive_participants = [
+                p_id for p_id, p in room.participants.items()
+                if current_time - p.last_ping > max_inactive_time
+            ]
+            
+            for p_id in inactive_participants:
+                self.remove_participant(room_id, p_id)
+                
+            # Mark empty rooms for removal
+            if not room.participants:
+                rooms_to_remove.append(room_id)
+                
+        # Remove marked rooms
+        for room_id in rooms_to_remove:
+            if room_id in self.rooms:
+                del self.rooms[room_id]
+                logger.info(f"Cleaned up inactive room {room_id}")
+                
+    def get_stats(self) -> Dict:
+        """Get WebRTC manager statistics"""
+        total_participants = sum(len(room.participants) for room in self.rooms.values())
+        return {
+            'total_rooms': len(self.rooms),
+            'total_participants': total_participants
+        }
 
 # Global WebRTC Manager instance
 webrtc_manager = WebRTCManager()

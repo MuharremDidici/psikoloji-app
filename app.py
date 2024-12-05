@@ -1119,26 +1119,26 @@ socketio = SocketIO(
 )
 
 @app.before_first_request
-async def setup_managers():
+def setup_managers():
     try:
-        await redis_manager.init()
+        redis_manager.init()
         logger.info("Managers initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize managers: {e}")
         raise
 
 @socketio.on('connect')
-async def handle_connect():
+def handle_connect():
     logger.info(f"Client connected: {request.sid}")
     metrics_manager.participant_joined.inc()
 
 @socketio.on('disconnect')
-async def handle_disconnect():
+def handle_disconnect():
     try:
         sid = request.sid
-        room_data = await redis_manager.get_participant_status(None, sid)
+        room_data = redis_manager.get_participant_status(None, sid)
         if room_data and 'room_id' in room_data:
-            await webrtc_manager.remove_participant(room_data['room_id'], sid)
+            webrtc_manager.remove_participant(room_data['room_id'], sid)
             metrics_manager.active_participants.dec()
         logger.info(f"Client disconnected: {sid}")
     except Exception as e:
@@ -1146,23 +1146,23 @@ async def handle_disconnect():
         metrics_manager.record_error("disconnect_error")
 
 @socketio.on('join')
-async def join_session(data):
+def join_session(data):
     with metrics_manager.track_connection_setup():
         try:
             room_id = data['room']
             sid = request.sid
             
             # Create or get room
-            room = await webrtc_manager.get_room(room_id)
+            room = webrtc_manager.get_room(room_id)
             if not room:
-                room = await webrtc_manager.create_room(room_id)
+                room = webrtc_manager.create_room(room_id)
                 metrics_manager.room_created.inc()
             
             # Add participant
-            participant = await webrtc_manager.add_participant(room_id, sid)
+            participant = webrtc_manager.add_participant(room_id, sid)
             
             # Update Redis
-            await redis_manager.set_participant_status(room_id, sid, {
+            redis_manager.set_participant_status(room_id, sid, {
                 'joined_at': time.time(),
                 'room_id': room_id
             })
@@ -1174,10 +1174,17 @@ async def join_session(data):
             # Join room
             join_room(room_id)
             
+            # Get existing participants
+            participants = webrtc_manager.get_room_participants(room_id)
+            participant_list = [{'id': p.id, 'is_publisher': p.is_publisher} 
+                              for p in participants.values() if p.id != sid]
+            
             # Notify room
             emit('room_join', {
                 'room': room_id,
-                'count': len(room.participants)
+                'count': len(participants),
+                'participants': participant_list,
+                'you': {'id': sid, 'is_publisher': False}
             }, room=room_id)
             
             logger.info(f"Client {sid} joined room {room_id}")
@@ -1188,13 +1195,13 @@ async def join_session(data):
             emit('error', {'message': 'Failed to join session'})
 
 @socketio.on('leave')
-async def leave_session(data):
+def leave_session(data):
     try:
         room_id = data['room']
         sid = request.sid
         
-        await webrtc_manager.remove_participant(room_id, sid)
-        await redis_manager.remove_participant_status(room_id, sid)
+        webrtc_manager.remove_participant(room_id, sid)
+        redis_manager.remove_participant_status(room_id, sid)
         
         leave_room(room_id)
         metrics_manager.active_participants.dec()
@@ -1207,7 +1214,7 @@ async def leave_session(data):
         metrics_manager.record_error("leave_error")
 
 @socketio.on('signal')
-async def handle_signal(data):
+def handle_signal(data):
     try:
         room_id = data['room']
         target_id = data['target']
@@ -1224,29 +1231,29 @@ async def handle_signal(data):
         metrics_manager.record_error("signal_error")
 
 @socketio.on('ping')
-async def handle_ping():
+def handle_ping():
     try:
         sid = request.sid
-        room_data = await redis_manager.get_participant_status(None, sid)
+        room_data = redis_manager.get_participant_status(None, sid)
         if room_data and 'room_id' in room_data:
-            await webrtc_manager.update_participant_ping(room_data['room_id'], sid)
-            await redis_manager.update_participant_status(room_data['room_id'], sid, {'last_ping': time.time()})
+            webrtc_manager.update_participant_ping(room_data['room_id'], sid)
+            redis_manager.update_participant_status(room_data['room_id'], sid, {'last_ping': time.time()})
     except Exception as e:
         logger.error(f"Error handling ping: {e}")
         metrics_manager.record_error("ping_error")
 
 @socketio.on('offer')
-async def handle_offer(data):
+def handle_offer(data):
     try:
         room_id = data['room']
         sid = request.sid
         offer = data['offer']
         
         # Process WebRTC offer
-        answer = await webrtc_manager.process_offer(room_id, sid, offer)
+        answer = webrtc_manager.process_offer(room_id, sid, offer)
         
         # Update participant status
-        await redis_manager.set_participant_status(room_id, sid, {
+        redis_manager.set_participant_status(room_id, sid, {
             'last_offer': time.time()
         })
         
@@ -1259,12 +1266,12 @@ async def handle_offer(data):
         emit('error', {'message': 'Failed to process offer'})
 
 @socketio.on('ice-candidate')
-async def handle_ice_candidate(data):
+def handle_ice_candidate(data):
     try:
         room_id = data['room']
         candidate = data['candidate']
         
-        room = await webrtc_manager.get_room(room_id)
+        room = webrtc_manager.get_room(room_id)
         if room:
             # Forward candidate to other participants
             for participant_id in room.participants:
@@ -1277,7 +1284,7 @@ async def handle_ice_candidate(data):
         metrics_manager.record_error("ice_error")
 
 @socketio.on('chat-message')
-async def on_chat_message(data):
+def on_chat_message(data):
     room_id = data['room']
     emit('chat-message', {'message': data['message']}, room=room_id, include_self=False)
 

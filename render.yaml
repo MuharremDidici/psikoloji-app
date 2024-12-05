@@ -1,41 +1,25 @@
 services:
   - type: web
-    name: psikoloji-app
+    name: windsurf-webrtc
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: >
-      gunicorn 
-      --worker-class eventlet 
-      --workers 1 
-      --timeout 120 
-      --keep-alive 65 
-      --log-level info
-      --access-logfile - 
-      --error-logfile - 
-      --worker-connections 1000
-      wsgi:app
+    startCommand: gunicorn --worker-class eventlet -w 1 wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.12
       - key: REDIS_URL
         fromService:
           type: redis
-          name: session-store
+          name: windsurf-redis
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
-      - key: WEB_CONCURRENCY
-        value: 1
       - key: METRICS_PORT
         value: 9090
-      - key: FLASK_ENV
-        value: production
       - key: WEBSOCKET_PING_INTERVAL
         value: 25
       - key: WEBSOCKET_PING_TIMEOUT
         value: 60
-      - key: EVENTLET_MONKEY_PATCH
-        value: 1
     healthCheckPath: /health
     autoDeploy: true
     plan: starter
@@ -48,10 +32,11 @@ services:
       sizeGB: 1
 
   - type: redis
-    name: session-store
-    ipAllowList: []
-    plan: starter
-    maxmemoryPolicy: noeviction
+    name: windsurf-redis
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere
+    plan: free
 
 databases:
   - name: psikoloji-db
