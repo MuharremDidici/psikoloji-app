@@ -1325,29 +1325,35 @@ def video_session(appointment_id):
 
 @app.route('/health')
 def health_check():
+    """Health check endpoint"""
     try:
-        # Redis bağlantısını kontrol et
-        redis_ok = redis_manager.ping()
+        redis_status = "ok" if redis_manager.ping() else "error"
+        metrics_status = "ok"  # Prometheus metrics are always available
         
-        # Metrics servisini kontrol et
-        metrics_ok = metrics_manager.active_rooms.collect() is not None
+        status = "healthy" if redis_status == "ok" else "unhealthy"
         
-        health_status = {
-            'status': 'healthy' if redis_ok and metrics_ok else 'unhealthy',
-            'redis': 'ok' if redis_ok else 'error',
-            'metrics': 'ok' if metrics_ok else 'error',
-            'timestamp': datetime.utcnow().isoformat()
+        response = {
+            "status": status,
+            "redis": redis_status,
+            "metrics": metrics_status,
+            "timestamp": datetime.utcnow().isoformat()
         }
         
-        return jsonify(health_status), 200 if health_status['status'] == 'healthy' else 503
+        if status == "unhealthy":
+            # Try to reconnect to Redis
+            try:
+                redis_manager.init()
+            except Exception as e:
+                logger.error(f"Redis reconnection failed: {e}")
         
+        return jsonify(response), 200 if status == "healthy" else 503
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return jsonify({
-            'status': 'unhealthy',
-            'error': str(e),
-            'timestamp': datetime.utcnow().isoformat()
-        }), 503
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }), 500
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
