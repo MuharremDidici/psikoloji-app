@@ -1235,6 +1235,7 @@ def leave_session(data):
         
         leave_room(room)
         metrics_manager.active_participants.dec()
+        metrics_manager.record_room_leave()
         
         emit('participant_left', {'participant_id': sid}, room=room)
         logger.info(f"Client {sid} left room {room}")

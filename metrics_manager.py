@@ -20,6 +20,14 @@ class MetricsManager:
             'Total number of connection errors',
             ['error_type']
         )
+        self.room_joins = Counter(
+            'room_joins_total',
+            'Total number of successful room joins'
+        )
+        self.room_leaves = Counter(
+            'room_leaves_total',
+            'Total number of room leaves'
+        )
         
         # Gauges
         self.active_rooms = Gauge(
@@ -81,6 +89,16 @@ class MetricsManager:
     def record_error(self, error_type: str):
         """Record a connection error"""
         self.connection_errors.labels(error_type=error_type).inc()
-
+        
+    def record_room_join(self):
+        """Record a successful room join"""
+        self.room_joins.inc()
+        self.participant_joined.inc()
+        
+    def record_room_leave(self):
+        """Record a room leave"""
+        self.room_leaves.inc()
+        self.active_participants.dec()
+    
 # Global Metrics Manager instance
 metrics_manager = MetricsManager()
