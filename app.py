@@ -1151,71 +1151,93 @@ def handle_disconnect():
 
 @socketio.on('join')
 def join_session(data):
-    with metrics_manager.track_connection_setup():
+    try:
+        room = data.get('room')
+        if not room:
+            logger.error("No room specified in join request")
+            return
+            
+        sid = request.sid
+        logger.info(f"received event \"join\" from {sid} [/]")
+        
+        # Odaya katılımcı ekle
+        webrtc_manager.add_participant(room, sid)
+        logger.info(f"Added participant {sid} to room {room}")
+        
+        # Redis'te katılımcı durumunu güncelle (opsiyonel)
         try:
-            room_id = data['room']
-            sid = request.sid
-            
-            # Create or get room
-            room = webrtc_manager.get_room(room_id)
-            if not room:
-                room = webrtc_manager.create_room(room_id)
-                metrics_manager.room_created.inc()
-            
-            # İlk katılımcı publisher olsun
-            is_publisher = len(webrtc_manager.get_room_participants(room_id)) == 0
-            
-            # Add participant
-            participant = webrtc_manager.add_participant(room_id, sid, is_publisher=is_publisher)
-            
-            # Update Redis
-            redis_manager.set_participant_status(room_id, sid, {
+            redis_manager.set_participant_status(room, sid, {
                 'joined_at': time.time(),
-                'room_id': room_id,
-                'is_publisher': is_publisher
+                'is_active': True
             })
+        except Exception as redis_err:
+            logger.warning(f"Redis is not enabled. Participant status will not be stored.")
             
-            # Update metrics
-            metrics_manager.active_participants.inc()
-            metrics_manager.active_rooms.set(len(webrtc_manager.rooms))
+        # Odaya giriş yap
+        join_room(room)
+        logger.info(f"{sid} is entering room {room} [/]")
+        
+        # Oda bilgilerini al
+        room_info = webrtc_manager.get_room(room)
+        if not room_info:
+            logger.error(f"Room {room} not found after adding participant")
+            return
             
-            # Join room
-            join_room(room_id)
-            
-            # Get existing participants
-            participants = webrtc_manager.get_room_participants(room_id)
-            participant_list = [{'id': p.id, 'is_publisher': p.is_publisher} 
-                              for p in participants.values() if p.id != sid]
-            
-            # Notify room
-            emit('room_join', {
-                'room': room_id,
-                'count': len(participants),
-                'participants': participant_list,
-                'you': {'id': sid, 'is_publisher': is_publisher}
-            }, room=room_id)
-            
-            logger.info(f"Client {sid} joined room {room_id} as {'publisher' if is_publisher else 'viewer'}")
-            
-        except Exception as e:
-            logger.error(f"Error in join_session: {e}")
-            metrics_manager.record_error("join_error")
-            emit('error', {'message': 'Failed to join session'})
+        # Katılımcı listesini hazırla
+        participants = []
+        for p_id in room_info.participants:
+            if p_id != sid:  # Kendisi hariç
+                p_info = {
+                    'id': p_id,
+                    'is_publisher': room_info.is_publisher(p_id)
+                }
+                participants.append(p_info)
+                
+        # Yeni katılımcının publisher olup olmadığını belirle
+        is_publisher = len(participants) == 0  # İlk katılımcı publisher olur
+        
+        # Katılımcı bilgilerini güncelle
+        room_info.set_publisher(sid, is_publisher)
+        
+        # Oda katılım bilgisini tüm katılımcılara gönder
+        response = {
+            'room': room,
+            'count': len(room_info.participants),
+            'participants': participants,
+            'you': {
+                'id': sid,
+                'is_publisher': is_publisher
+            }
+        }
+        
+        logger.info(f"emitting event \"room_join\" to {room} [/]")
+        emit('room_join', response, room=room)
+        
+        role = "publisher" if is_publisher else "viewer"
+        logger.info(f"Client {sid} joined room {room} as {role}")
+        
+        # Metrikleri güncelle
+        metrics_manager.record_room_join()
+        
+    except Exception as e:
+        logger.error(f"Error in join_session: {str(e)}", exc_info=True)
+        metrics_manager.record_error("join_error")
+        emit('error', {'message': 'Failed to join session'})
 
 @socketio.on('leave')
 def leave_session(data):
     try:
-        room_id = data['room']
+        room = data['room']
         sid = request.sid
         
-        webrtc_manager.remove_participant(room_id, sid)
-        redis_manager.remove_participant_status(room_id, sid)
+        webrtc_manager.remove_participant(room, sid)
+        redis_manager.remove_participant_status(room, sid)
         
-        leave_room(room_id)
+        leave_room(room)
         metrics_manager.active_participants.dec()
         
-        emit('participant_left', {'participant_id': sid}, room=room_id)
-        logger.info(f"Client {sid} left room {room_id}")
+        emit('participant_left', {'participant_id': sid}, room=room)
+        logger.info(f"Client {sid} left room {room}")
         
     except Exception as e:
         logger.error(f"Error in leave_session: {e}")
@@ -1224,16 +1246,16 @@ def leave_session(data):
 @socketio.on('signal')
 def handle_signal(data):
     try:
-        room_id = data.get('room')
+        room = data.get('room')
         target_id = data.get('target')
         signal_type = data.get('type')
         signal_data = data.get('data')
         
-        if not all([room_id, target_id, signal_type, signal_data]):
+        if not all([room, target_id, signal_type, signal_data]):
             logger.error("Missing required signal data")
             return
             
-        logger.info(f"Signal {signal_type} from {request.sid} to {target_id} in room {room_id}")
+        logger.info(f"Signal {signal_type} from {request.sid} to {target_id} in room {room}")
         
         # Signal'i hedef katılımcıya ilet
         emit('signal', {
@@ -1249,15 +1271,15 @@ def handle_signal(data):
 @socketio.on('offer')
 def handle_offer(data):
     try:
-        room_id = data.get('room')
+        room = data.get('room')
         target_id = data.get('target')
         sdp = data.get('sdp')
         
-        if not all([room_id, target_id, sdp]):
+        if not all([room, target_id, sdp]):
             logger.error("Missing required offer data")
             return
             
-        logger.info(f"Offer from {request.sid} to {target_id} in room {room_id}")
+        logger.info(f"Offer from {request.sid} to {target_id} in room {room}")
         
         # SDP teklifini hedef katılımcıya ilet
         emit('offer', {
@@ -1276,15 +1298,15 @@ def handle_offer(data):
 @socketio.on('answer')
 def handle_answer(data):
     try:
-        room_id = data.get('room')
+        room = data.get('room')
         target_id = data.get('target')
         sdp = data.get('sdp')
         
-        if not all([room_id, target_id, sdp]):
+        if not all([room, target_id, sdp]):
             logger.error("Missing required answer data")
             return
             
-        logger.info(f"Answer from {request.sid} to {target_id} in room {room_id}")
+        logger.info(f"Answer from {request.sid} to {target_id} in room {room}")
         
         # SDP cevabını hedef katılımcıya ilet
         emit('answer', {
@@ -1299,15 +1321,15 @@ def handle_answer(data):
 @socketio.on('ice_candidate')
 def handle_ice_candidate(data):
     try:
-        room_id = data.get('room')
+        room = data.get('room')
         target_id = data.get('target')
         candidate = data.get('candidate')
         
-        if not all([room_id, target_id, candidate]):
+        if not all([room, target_id, candidate]):
             logger.error("Missing required ICE candidate data")
             return
             
-        logger.info(f"ICE candidate from {request.sid} to {target_id} in room {room_id}")
+        logger.info(f"ICE candidate from {request.sid} to {target_id} in room {room}")
         
         # ICE adayını hedef katılımcıya ilet
         emit('ice_candidate', {
@@ -1321,8 +1343,8 @@ def handle_ice_candidate(data):
 
 @socketio.on('chat-message')
 def on_chat_message(data):
-    room_id = data['room']
-    emit('chat-message', {'message': data['message']}, room=room_id, include_self=False)
+    room = data['room']
+    emit('chat-message', {'message': data['message']}, room=room, include_self=False)
 
 @app.route('/session/<appointment_id>')
 @login_required

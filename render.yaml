@@ -3,7 +3,7 @@ services:
     name: windsurf-webrtc
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --worker-class eventlet -w 1 wsgi:app
+    startCommand: gunicorn --worker-class eventlet -w 3 wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.12
