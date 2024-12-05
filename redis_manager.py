@@ -12,23 +12,26 @@ logger = logging.getLogger(__name__)
 class RedisManager:
     def __init__(self, url: Optional[str] = None):
         self.url = url or os.getenv('REDIS_URL')
-        if not self.url:
-            raise ValueError("Redis URL not provided and REDIS_URL environment variable not set")
-            
-        # Parse Redis URL for logging
-        parsed_url = urlparse(self.url)
-        self.host = parsed_url.hostname
-        self.port = parsed_url.port
-        
-        logger.info(f"Initializing Redis connection to {self.host}:{self.port}")
-        
         self.redis = None
         self.connection_attempts = 0
         self.max_retries = 3
         self.retry_delay = 5  # seconds
+        self.enabled = bool(self.url)  # Redis sadece URL varsa aktif olacak
         
+        if self.enabled:
+            # Parse Redis URL for logging
+            parsed_url = urlparse(self.url)
+            self.host = parsed_url.hostname
+            self.port = parsed_url.port
+            logger.info(f"Initializing Redis connection to {self.host}:{self.port}")
+        else:
+            logger.warning("Redis URL not provided. Running in local mode without Redis.")
+            
     def init(self):
         """Initialize Redis connection with retries"""
+        if not self.enabled:
+            return False
+            
         while self.connection_attempts < self.max_retries:
             try:
                 if not self.redis:
@@ -62,6 +65,8 @@ class RedisManager:
     def ensure_connection(self):
         """Ensure Redis connection is active"""
         try:
+            if not self.enabled:
+                return True
             if not self.redis or not self.ping():
                 logger.info("Redis connection lost, attempting to reconnect...")
                 return self.init()
@@ -73,6 +78,10 @@ class RedisManager:
     def set_participant_status(self, room_id: str, participant_id: str, status: Dict[str, Any]):
         """Set participant status in Redis"""
         try:
+            if not self.enabled:
+                logger.warning("Redis is not enabled. Participant status will not be stored.")
+                return
+            
             if not self.ensure_connection():
                 logger.error("Cannot set participant status: Redis connection not available")
                 return
@@ -87,6 +96,10 @@ class RedisManager:
     def get_participant_status(self, room_id: Optional[str], participant_id: str) -> Optional[Dict[str, Any]]:
         """Get participant status from Redis"""
         try:
+            if not self.enabled:
+                logger.warning("Redis is not enabled. Participant status will not be retrieved.")
+                return None
+                
             if not self.ensure_connection():
                 logger.error("Cannot get participant status: Redis connection not available")
                 return None
@@ -101,6 +114,10 @@ class RedisManager:
     def update_participant_status(self, room_id: str, participant_id: str, updates: Dict[str, Any]):
         """Update participant status in Redis"""
         try:
+            if not self.enabled:
+                logger.warning("Redis is not enabled. Participant status will not be updated.")
+                return
+                
             if not self.ensure_connection():
                 logger.error("Cannot update participant status: Redis connection not available")
                 return
@@ -114,6 +131,10 @@ class RedisManager:
     def remove_participant_status(self, room_id: str, participant_id: str):
         """Remove participant status from Redis"""
         try:
+            if not self.enabled:
+                logger.warning("Redis is not enabled. Participant status will not be removed.")
+                return
+                
             if not self.ensure_connection():
                 logger.error("Cannot remove participant status: Redis connection not available")
                 return
@@ -127,6 +148,8 @@ class RedisManager:
     def ping(self) -> bool:
         """Check Redis connection"""
         try:
+            if not self.enabled:
+                return True
             return bool(self.redis and self.redis.ping())
         except Exception as e:
             logger.error(f"Redis ping failed: {str(e)}")

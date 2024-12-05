@@ -16,7 +16,18 @@ class User(UserMixin, db.Model):
     is_psychologist = db.Column(db.Boolean, default=False)  # Terapist mi değil mi?
     test_results = db.relationship('TestResult', backref='user', lazy=True)
     sessions = db.relationship('Session', backref='user', lazy=True)
-    appointments = db.relationship('Appointment', backref=db.backref('client', lazy=True))
+    
+    # Ana randevu ilişkisi
+    appointments = db.relationship('Appointment',
+                                 backref=db.backref('client', lazy=True),
+                                 foreign_keys='Appointment.user_id')
+    
+    # İkincil randevu ilişkisi (viewonly)
+    user_appointments = db.relationship('Appointment',
+                                      backref=db.backref('user_ref', lazy=True),
+                                      foreign_keys='Appointment.user_id',
+                                      overlaps="appointments,client",
+                                      viewonly=True)
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -34,7 +45,18 @@ class Psychologist(db.Model):
     specialization = db.Column(db.String(200))
     email = db.Column(db.String(120), unique=True, nullable=False)
     phone = db.Column(db.String(20))
-    appointments = db.relationship('Appointment', backref='psychologist', lazy=True)
+    
+    # Ana randevu ilişkisi
+    appointments = db.relationship('Appointment',
+                                 backref=db.backref('psychologist', lazy=True),
+                                 foreign_keys='Appointment.psychologist_id')
+    
+    # İkincil randevu ilişkisi (viewonly)
+    therapist_appointments = db.relationship('Appointment',
+                                           backref=db.backref('therapist_ref', lazy=True),
+                                           foreign_keys='Appointment.psychologist_id',
+                                           overlaps="appointments,psychologist",
+                                           viewonly=True)
 
     def __repr__(self):
         return f'<Psychologist {self.name}>'
