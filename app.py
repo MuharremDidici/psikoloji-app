@@ -25,6 +25,12 @@ db.init_app(app)
 # Veritabanı tablolarını oluştur
 with app.app_context():
     db.create_all()
+    # Test verilerini yükle
+    try:
+        from testdata import create_test_data
+        create_test_data(db)
+    except Exception as e:
+        print(f"Test verileri yüklenirken hata: {str(e)}")
     
 migrate = Migrate(app, db)
 login_manager = LoginManager()
