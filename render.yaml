@@ -3,10 +3,14 @@ services:
     name: psikoloji-app
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --worker-class eventlet -w 1 wsgi:app
+    startCommand: gunicorn --worker-class eventlet -w 4 wsgi:app
     envVars:
       - key: PYTHON_VERSION
-        value: 3.8.12
-      - key: SECRET_KEY
-        generateValue: true
+        value: 3.9.12
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_APP
+        value: app.py
+    healthCheckPath: /
+    autoDeploy: false
     plan: free
