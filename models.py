@@ -59,8 +59,14 @@ class Appointment(db.Model):
     date_requested = db.Column(db.DateTime, default=datetime.utcnow)
     
     # İlişki tanımlamaları
-    therapist = db.relationship('Psychologist', foreign_keys=[psychologist_id])
-    user = db.relationship('User', foreign_keys=[user_id])
+    therapist = db.relationship('Psychologist', 
+                              foreign_keys=[psychologist_id],
+                              backref=db.backref('therapist_appointments', lazy=True),
+                              overlaps="appointments,psychologist")
+    user = db.relationship('User', 
+                         foreign_keys=[user_id],
+                         backref=db.backref('user_appointments', lazy=True),
+                         overlaps="appointments,client")
 
 class BlogPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
