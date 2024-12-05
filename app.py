@@ -1088,9 +1088,10 @@ def save_appointment():
             'message': f'Randevu kaydedilirken bir hata oluştu: {str(e)}'
         }), 500
 
-from flask_socketio import SocketIO, emit, join_room, leave_room
-import uuid
+# Global değişkenler
+room_participants = {}
 
+# Socket.IO yapılandırması
 socketio = SocketIO(app, 
                    cors_allowed_origins="*",
                    async_mode='threading',
@@ -1109,32 +1110,40 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     app.logger.info(f'Client disconnected: {request.sid}')
+    # Kullanıcı bağlantısı koptuğunda odadan çıkar
+    for room in room_participants.keys():
+        if request.sid in room_participants[room]:
+            room_participants[room].remove(request.sid)
+            emit('user_left', {'count': len(room_participants[room])}, room=room)
+
+@socketio.on('join')
+def on_join(data):
+    try:
+        room = data['room']
+        join_room(room)
+        if room not in room_participants:
+            room_participants[room] = set()
+        room_participants[room].add(request.sid)
+        app.logger.info(f'Client {request.sid} joined room {room}')
+        emit('joined', {'count': len(room_participants[room])}, room=room)
+    except Exception as e:
+        app.logger.error(f'Error in join event: {str(e)}')
+
+@socketio.on('leave')
+def on_leave(data):
+    try:
+        room = data['room']
+        leave_room(room)
+        if room in room_participants and request.sid in room_participants[room]:
+            room_participants[room].remove(request.sid)
+            app.logger.info(f'Client {request.sid} left room {room}')
+            emit('user_left', {'count': len(room_participants[room])}, room=room)
+    except Exception as e:
+        app.logger.error(f'Error in leave event: {str(e)}')
 
 @socketio.on_error_default
 def default_error_handler(e):
     app.logger.error(f'SocketIO error: {str(e)}')
-
-@socketio.on('join')
-def on_join(data):
-    room = data['room']
-    if room not in room_participants:
-        room_participants[room] = set()
-    room_participants[room].add(request.sid)
-    join_room(room)
-    
-    # Odadaki katılımcı sayısını kontrol et
-    if len(room_participants[room]) == 2:
-        emit('all_users_joined', {}, room=room)
-    else:
-        emit('joined', {}, room=room)
-
-@socketio.on('disconnect')
-def on_disconnect():
-    for room in room_participants:
-        if request.sid in room_participants[room]:
-            room_participants[room].remove(request.sid)
-            emit('user_disconnected', {}, room=room)
-            break
 
 @socketio.on('offer')
 def on_offer(data):
