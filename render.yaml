@@ -7,21 +7,52 @@ services:
       gunicorn 
       --worker-class eventlet 
       --workers 1 
-      --threads 8 
+      --threads 4 
       --timeout 120 
       --keep-alive 65 
-      --backlog 100
-      --max-requests 1000 
-      --max-requests-jitter 50 
       --log-level info
-      wsgi:app
+      --access-logfile - 
+      --error-logfile - 
+      app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.12
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: session-store
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 1
+      - key: METRICS_PORT
+        value: 9090
       - key: FLASK_ENV
         value: production
-      - key: WEB_CONCURRENCY
-        value: "1"
-    healthCheckPath: /
-    autoDeploy: false
-    plan: free
+      - key: WEBSOCKET_PING_INTERVAL
+        value: 25
+      - key: WEBSOCKET_PING_TIMEOUT
+        value: 60
+    healthCheckPath: /health
+    autoDeploy: true
+    plan: starter
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+    disk:
+      name: uploads
+      mountPath: /uploads
+      sizeGB: 1
+
+  - type: redis
+    name: session-store
+    ipAllowList: []
+    plan: starter
+    maxmemoryPolicy: noeviction
+
+databases:
+  - name: psikoloji-db
+    databaseName: psikoloji
+    user: psikoloji
+    plan: starter

@@ -5,8 +5,6 @@ from typing import Dict, Optional, Set
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 from datetime import datetime
-from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack
-from aiortc.contrib.media import MediaRelay
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
@@ -23,16 +21,13 @@ class Room:
 @dataclass
 class Participant:
     id: str
-    peer_connection: RTCPeerConnection
     room_id: str
-    tracks: Set[MediaStreamTrack] = field(default_factory=set)
-    relay: MediaRelay = field(default_factory=MediaRelay)
     last_ping: datetime = field(default_factory=datetime.utcnow)
-
+    is_publisher: bool = False
+    
 class WebRTCManager:
     def __init__(self):
         self.rooms: Dict[str, Room] = {}
-        self.relay = MediaRelay()
         self._cleanup_task = None
         self.start_cleanup_task()
 
@@ -44,7 +39,7 @@ class WebRTCManager:
         while True:
             try:
                 await self._cleanup_inactive_rooms()
-                await asyncio.sleep(60)  # Her dakika kontrol et
+                await asyncio.sleep(60)
             except Exception as e:
                 logger.error(f"Cleanup error: {e}")
 
@@ -82,7 +77,7 @@ class WebRTCManager:
     async def get_room(self, room_id: str) -> Optional[Room]:
         return self.rooms.get(room_id)
 
-    async def add_participant(self, room_id: str, participant_id: str) -> Participant:
+    async def add_participant(self, room_id: str, participant_id: str, is_publisher: bool = False) -> Participant:
         room = await self.get_room(room_id)
         if not room:
             raise ValueError("Room not found")
@@ -93,11 +88,10 @@ class WebRTCManager:
         if participant_id in room.participants:
             raise ValueError("Participant already in room")
             
-        pc = RTCPeerConnection()
         participant = Participant(
             id=participant_id,
-            peer_connection=pc,
-            room_id=room_id
+            room_id=room_id,
+            is_publisher=is_publisher
         )
         
         room.participants[participant_id] = participant
@@ -109,18 +103,9 @@ class WebRTCManager:
         if not room:
             return
             
-        participant = room.participants.get(participant_id)
-        if not participant:
-            return
-            
-        # Cleanup participant resources
-        for track in participant.tracks:
-            track.stop()
-        
-        await participant.peer_connection.close()
-        del room.participants[participant_id]
-        
-        logger.info(f"Removed participant {participant_id} from room {room_id}")
+        if participant_id in room.participants:
+            del room.participants[participant_id]
+            logger.info(f"Removed participant {participant_id} from room {room_id}")
         
         if not room.participants:
             await self.close_room(room_id)
@@ -129,8 +114,6 @@ class WebRTCManager:
         room = self.rooms.pop(room_id, None)
         if room:
             room.active = False
-            for participant_id in list(room.participants.keys()):
-                await self.remove_participant(room_id, participant_id)
             logger.info(f"Closed room: {room_id}")
 
     async def update_participant_ping(self, room_id: str, participant_id: str):
@@ -138,35 +121,17 @@ class WebRTCManager:
         if room and participant_id in room.participants:
             room.participants[participant_id].last_ping = datetime.utcnow()
 
-    async def process_offer(self, room_id: str, participant_id: str, offer: RTCSessionDescription) -> RTCSessionDescription:
+    async def get_room_participants(self, room_id: str) -> Dict[str, Participant]:
         room = await self.get_room(room_id)
-        if not room:
-            raise ValueError("Room not found")
-            
-        participant = room.participants.get(participant_id)
-        if not participant:
-            raise ValueError("Participant not found")
-            
-        pc = participant.peer_connection
-        
-        @pc.on("track")
-        async def on_track(track):
-            logger.info(f"Track received from {participant_id}")
-            participant.tracks.add(track)
-            
-            relayed_track = participant.relay.subscribe(track)
-            
-            for other_id, other in room.participants.items():
-                if other_id != participant_id:
-                    pc = other.peer_connection
-                    sender = pc.addTrack(relayed_track)
-                    other.tracks.add(sender)
-        
-        await pc.setRemoteDescription(offer)
-        answer = await pc.createAnswer()
-        await pc.setLocalDescription(answer)
-        
-        return pc.localDescription
+        return room.participants if room else {}
+
+    async def get_publisher(self, room_id: str) -> Optional[Participant]:
+        room = await self.get_room(room_id)
+        if room:
+            for participant in room.participants.values():
+                if participant.is_publisher:
+                    return participant
+        return None
 
 # Global WebRTC Manager instance
 webrtc_manager = WebRTCManager()

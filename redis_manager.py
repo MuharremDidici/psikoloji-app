@@ -102,6 +102,15 @@ class RedisManager:
         except Exception as e:
             logger.error(f"Error cleaning up inactive participants: {e}")
 
+    async def ping(self) -> bool:
+        """Redis bağlantısını kontrol et"""
+        try:
+            await self.redis.ping()
+            return True
+        except Exception as e:
+            logger.error(f"Redis ping failed: {e}")
+            return False
+
     async def close(self):
         """Close Redis connection"""
         try:

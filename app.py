@@ -1188,6 +1188,54 @@ async def join_session(data):
             metrics_manager.record_error("join_error")
             emit('error', {'message': 'Failed to join session'})
 
+@socketio.on('leave')
+async def leave_session(data):
+    try:
+        room_id = data['room']
+        sid = request.sid
+        
+        await webrtc_manager.remove_participant(room_id, sid)
+        await redis_manager.remove_participant_status(room_id, sid)
+        
+        leave_room(room_id)
+        metrics_manager.active_participants.dec()
+        
+        emit('participant_left', {'participant_id': sid}, room=room_id)
+        logger.info(f"Client {sid} left room {room_id}")
+        
+    except Exception as e:
+        logger.error(f"Error in leave_session: {e}")
+        metrics_manager.record_error("leave_error")
+
+@socketio.on('signal')
+async def handle_signal(data):
+    try:
+        room_id = data['room']
+        target_id = data['target']
+        signal_data = data['signal']
+        
+        # Forward signal to target participant
+        emit('signal', {
+            'from': request.sid,
+            'signal': signal_data
+        }, room=target_id)
+        
+    except Exception as e:
+        logger.error(f"Error handling signal: {e}")
+        metrics_manager.record_error("signal_error")
+
+@socketio.on('ping')
+async def handle_ping():
+    try:
+        sid = request.sid
+        room_data = await redis_manager.get_participant_status(None, sid)
+        if room_data and 'room_id' in room_data:
+            await webrtc_manager.update_participant_ping(room_data['room_id'], sid)
+            await redis_manager.update_participant_status(room_data['room_id'], sid, {'last_ping': time.time()})
+    except Exception as e:
+        logger.error(f"Error handling ping: {e}")
+        metrics_manager.record_error("ping_error")
+
 @socketio.on('offer')
 async def handle_offer(data):
     try:
@@ -1264,6 +1312,32 @@ def video_session(appointment_id):
                          room_id=room_id, 
                          is_host=is_host,
                          appointment=appointment)
+
+@app.route('/health')
+def health_check():
+    try:
+        # Redis bağlantısını kontrol et
+        redis_ok = redis_manager.ping()
+        
+        # Metrics servisini kontrol et
+        metrics_ok = metrics_manager.active_rooms.collect() is not None
+        
+        health_status = {
+            'status': 'healthy' if redis_ok and metrics_ok else 'unhealthy',
+            'redis': 'ok' if redis_ok else 'error',
+            'metrics': 'ok' if metrics_ok else 'error',
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        return jsonify(health_status), 200 if health_status['status'] == 'healthy' else 503
+        
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 503
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
