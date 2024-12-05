@@ -16,6 +16,15 @@ class Room:
     id: str
     participants: Dict[str, Participant] = field(default_factory=dict)
     created_at: float = field(default_factory=time.time)
+    
+    def is_publisher(self, participant_id: str) -> bool:
+        """Check if participant is publisher"""
+        return self.participants.get(participant_id, Participant(id=participant_id)).is_publisher
+        
+    def set_publisher(self, participant_id: str, is_publisher: bool):
+        """Set participant publisher status"""
+        if participant_id in self.participants:
+            self.participants[participant_id].is_publisher = is_publisher
 
 class WebRTCManager:
     def __init__(self):
