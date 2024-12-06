@@ -447,98 +447,129 @@ const configuration = {
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
         { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' }
-    ]
+        { urls: 'stun:stun4.l.google.com:19302' },
+        {
+            urls: 'turn:numb.viagenie.ca',
+            username: 'webrtc@live.com',
+            credential: 'muazkh'
+        }
+    ],
+    iceCandidatePoolSize: 10
 };
 
 async function initWebRTC() {
     try {
+        console.log('WebRTC başlatılıyor...');
+        
+        // Medya erişimi iste
         localStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
+            video: { width: 640, height: 480 },
             audio: true
         });
         
         document.getElementById('localVideo').srcObject = localStream;
+        console.log('Yerel medya akışı başarıyla alındı');
         
         socket = io();
         
         socket.on('connect', () => {
-            console.log('Connected to signaling server');
+            console.log('Sinyal sunucusuna bağlanıldı');
             socket.emit('join', { room: roomId });
         });
         
         socket.on('room_join', async (data) => {
-            console.log('Room join event:', data);
+            console.log('Oda katılım olayı:', data);
             isPublisher = data.you.is_publisher;
             
-            if (isPublisher) {
-                console.log('You are the publisher');
-                // Publisher sadece yayın yapar
-            } else {
-                console.log('You are the viewer');
-                if (data.participants.length > 0) {
-                    const publisher = data.participants.find(p => p.is_publisher);
-                    if (publisher) {
-                        await createPeerConnection();
-                        const offer = await peerConnection.createOffer();
-                        await peerConnection.setLocalDescription(offer);
-                        socket.emit('offer', {
-                            room: roomId,
-                            target: publisher.id,
-                            sdp: offer
-                        });
-                    }
+            if (!isPublisher && data.participants.length > 0) {
+                const publisher = data.participants.find(p => p.is_publisher);
+                if (publisher) {
+                    await createPeerConnection();
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    socket.emit('offer', {
+                        room: roomId,
+                        target: publisher.id,
+                        sdp: offer
+                    });
                 }
             }
+            
+            // Bekleme ekranını güncelle
+            updateWaitingScreen(data.participants.length);
         });
         
         socket.on('offer', async (data) => {
-            if (isPublisher) {
-                await createPeerConnection();
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                socket.emit('answer', {
-                    room: roomId,
-                    target: data.sender,
-                    sdp: answer
-                });
+            try {
+                console.log('Teklif alındı:', data);
+                if (isPublisher) {
+                    await createPeerConnection();
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    socket.emit('answer', {
+                        room: roomId,
+                        target: data.sender,
+                        sdp: answer
+                    });
+                }
+            } catch (error) {
+                console.error('Teklif işleme hatası:', error);
             }
         });
         
         socket.on('answer', async (data) => {
-            if (!isPublisher) {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+            try {
+                console.log('Cevap alındı:', data);
+                if (!isPublisher && peerConnection) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                }
+            } catch (error) {
+                console.error('Cevap işleme hatası:', error);
             }
         });
         
         socket.on('ice_candidate', async (data) => {
-            if (peerConnection) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            try {
+                console.log('ICE adayı alındı:', data);
+                if (peerConnection) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                }
+            } catch (error) {
+                console.error('ICE aday ekleme hatası:', error);
             }
         });
         
     } catch (error) {
-        console.error('Error initializing WebRTC:', error);
+        console.error('WebRTC başlatma hatası:', error);
+        alert('Kamera ve mikrofon erişimi sağlanamadı. Lütfen izinleri kontrol edin.');
     }
 }
 
 async function createPeerConnection() {
     try {
         peerConnection = new RTCPeerConnection(configuration);
+        console.log('Peer bağlantısı oluşturuldu');
         
         if (isPublisher) {
             localStream.getTracks().forEach(track => {
                 peerConnection.addTrack(track, localStream);
+                console.log('Medya parçası eklendi:', track.kind);
             });
         }
         
         peerConnection.ontrack = (event) => {
-            document.getElementById('remoteVideo').srcObject = event.streams[0];
+            console.log('Uzak medya parçası alındı:', event.track.kind);
+            const remoteVideo = document.getElementById('remoteVideo');
+            if (remoteVideo.srcObject !== event.streams[0]) {
+                remoteVideo.srcObject = event.streams[0];
+                console.log('Uzak video akışı ayarlandı');
+            }
         };
         
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
+                console.log('ICE adayı bulundu:', event.candidate);
                 socket.emit('ice_candidate', {
                     room: roomId,
                     target: isPublisher ? null : socket.id,
@@ -548,15 +579,50 @@ async function createPeerConnection() {
         };
         
         peerConnection.onconnectionstatechange = (event) => {
-            console.log('Connection state:', peerConnection.connectionState);
+            console.log('Bağlantı durumu değişti:', peerConnection.connectionState);
+            switch(peerConnection.connectionState) {
+                case 'connected':
+                    console.log('Bağlantı başarıyla kuruldu');
+                    document.getElementById('waitingScreen').style.display = 'none';
+                    break;
+                case 'disconnected':
+                case 'failed':
+                    console.log('Bağlantı kesildi veya başarısız oldu');
+                    handleConnectionFailure();
+                    break;
+            }
         };
         
         peerConnection.oniceconnectionstatechange = (event) => {
-            console.log('ICE connection state:', peerConnection.iceConnectionState);
+            console.log('ICE bağlantı durumu:', peerConnection.iceConnectionState);
         };
         
     } catch (error) {
-        console.error('Error creating peer connection:', error);
+        console.error('Peer bağlantısı oluşturma hatası:', error);
+        throw error;
+    }
+}
+
+function handleConnectionFailure() {
+    // Bağlantı hatası durumunda yeniden bağlanmayı dene
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+    
+    setTimeout(() => {
+        console.log('Yeniden bağlanmaya çalışılıyor...');
+        initWebRTC();
+    }, 2000);
+}
+
+function updateWaitingScreen(participantCount) {
+    const waitingScreen = document.getElementById('waitingScreen');
+    if (participantCount < 2) {
+        waitingScreen.style.display = 'flex';
+        waitingScreen.querySelector('div').textContent = 'Diğer katılımcı bekleniyor...';
+    } else {
+        waitingScreen.style.display = 'none';
     }
 }
 
