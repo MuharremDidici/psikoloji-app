@@ -1155,48 +1155,49 @@ def join_session(data):
             return
             
         sid = request.sid
-        logger.info(f"received event \"join\" from {sid} [/]")
+        logger.info(f"Client {sid} joining room {room}")
         
-        # Odaya katılımcı ekle
-        webrtc_manager.add_participant(room, sid)
-        logger.info(f"Added participant {sid} to room {room}")
-        
-        # Redis'te katılımcı durumunu güncelle (opsiyonel)
-        try:
-            redis_manager.set_participant_status(room, sid, {
-                'joined_at': time.time(),
-                'is_active': True
-            })
-        except Exception as redis_err:
-            logger.warning(f"Redis is not enabled. Participant status will not be stored.")
-            
-        # Odaya giriş yap
+        # Odaya katıl
         join_room(room)
-        logger.info(f"{sid} is entering room {room} [/]")
         
-        # Oda bilgilerini al
+        # Odadaki mevcut katılımcıları al
         room_info = webrtc_manager.get_room(room)
         if not room_info:
-            logger.error(f"Room {room} not found after adding participant")
-            return
-            
+            room_info = webrtc_manager.create_room(room)
+        
         # Katılımcı listesini hazırla
         participants = []
-        for p_id in room_info.participants:
-            if p_id != sid:  # Kendisi hariç
+        is_publisher = False
+        
+        if room_info:
+            # Odada başka katılımcı var mı kontrol et
+            other_participants = [p for p in room_info.participants if p != sid]
+            if not other_participants:
+                # İlk katılımcı publisher olur
+                is_publisher = True
+            
+            for p_id in other_participants:
                 p_info = {
                     'id': p_id,
                     'is_publisher': room_info.is_publisher(p_id)
                 }
                 participants.append(p_info)
-                
-        # Yeni katılımcının publisher olup olmadığını belirle
-        is_publisher = len(participants) == 0  # İlk katılımcı publisher olur
         
-        # Katılımcı bilgilerini güncelle
+        # Katılımcıyı odaya ekle
+        webrtc_manager.add_participant(room, sid)
         room_info.set_publisher(sid, is_publisher)
         
-        # Oda katılım bilgisini tüm katılımcılara gönder
+        # Redis'te katılımcı durumunu güncelle
+        try:
+            redis_manager.set_participant_status(room, sid, {
+                'joined_at': time.time(),
+                'is_active': True,
+                'is_publisher': is_publisher
+            })
+        except Exception as redis_err:
+            logger.warning(f"Redis update failed: {redis_err}")
+        
+        # Oda katılım bilgisini gönder
         response = {
             'room': room,
             'count': len(room_info.participants),
@@ -1207,14 +1208,14 @@ def join_session(data):
             }
         }
         
-        logger.info(f"emitting event \"room_join\" to {room} [/]")
+        # Tüm katılımcılara yeni katılımcı bilgisini gönder
         emit('room_join', response, room=room)
-        
-        role = "publisher" if is_publisher else "viewer"
-        logger.info(f"Client {sid} joined room {room} as {role}")
         
         # Metrikleri güncelle
         metrics_manager.record_room_join()
+        metrics_manager.active_participants.inc()
+        
+        logger.info(f"Client {sid} joined room {room} as {'publisher' if is_publisher else 'viewer'}")
         
     except Exception as e:
         logger.error(f"Error in join_session: {str(e)}", exc_info=True)

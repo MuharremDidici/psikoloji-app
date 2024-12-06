@@ -463,14 +463,25 @@ async function initWebRTC() {
         
         // Medya erişimi iste
         localStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: 640, height: 480 },
+            video: { 
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: 'user'
+            },
             audio: true
         });
         
         document.getElementById('localVideo').srcObject = localStream;
         console.log('Yerel medya akışı başarıyla alındı');
         
-        socket = io();
+        // Socket.IO bağlantısı
+        socket = io({
+            transports: ['websocket'],
+            upgrade: false,
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
+        });
         
         socket.on('connect', () => {
             console.log('Sinyal sunucusuna bağlanıldı');
@@ -481,11 +492,19 @@ async function initWebRTC() {
             console.log('Oda katılım olayı:', data);
             isPublisher = data.you.is_publisher;
             
+            // Bekleme ekranını güncelle
+            updateWaitingScreen(data.participants.length);
+            
+            // Eğer viewer ise ve publisher varsa bağlantı kur
             if (!isPublisher && data.participants.length > 0) {
                 const publisher = data.participants.find(p => p.is_publisher);
                 if (publisher) {
+                    console.log('Publisher bulundu, bağlantı başlatılıyor...');
                     await createPeerConnection();
-                    const offer = await peerConnection.createOffer();
+                    const offer = await peerConnection.createOffer({
+                        offerToReceiveAudio: true,
+                        offerToReceiveVideo: true
+                    });
                     await peerConnection.setLocalDescription(offer);
                     socket.emit('offer', {
                         room: roomId,
@@ -494,9 +513,6 @@ async function initWebRTC() {
                     });
                 }
             }
-            
-            // Bekleme ekranını güncelle
-            updateWaitingScreen(data.participants.length);
         });
         
         socket.on('offer', async (data) => {
@@ -515,6 +531,7 @@ async function initWebRTC() {
                 }
             } catch (error) {
                 console.error('Teklif işleme hatası:', error);
+                handleConnectionFailure();
             }
         });
         
@@ -526,6 +543,7 @@ async function initWebRTC() {
                 }
             } catch (error) {
                 console.error('Cevap işleme hatası:', error);
+                handleConnectionFailure();
             }
         });
         
@@ -540,6 +558,16 @@ async function initWebRTC() {
             }
         });
         
+        socket.on('disconnect', () => {
+            console.log('Sunucu bağlantısı kesildi');
+            handleConnectionFailure();
+        });
+        
+        socket.on('error', (error) => {
+            console.error('Socket hatası:', error);
+            handleConnectionFailure();
+        });
+        
     } catch (error) {
         console.error('WebRTC başlatma hatası:', error);
         alert('Kamera ve mikrofon erişimi sağlanamadı. Lütfen izinleri kontrol edin.');
@@ -548,10 +576,14 @@ async function initWebRTC() {
 
 async function createPeerConnection() {
     try {
+        if (peerConnection) {
+            peerConnection.close();
+        }
+        
         peerConnection = new RTCPeerConnection(configuration);
         console.log('Peer bağlantısı oluşturuldu');
         
-        if (isPublisher) {
+        if (isPublisher && localStream) {
             localStream.getTracks().forEach(track => {
                 peerConnection.addTrack(track, localStream);
                 console.log('Medya parçası eklendi:', track.kind);
@@ -564,6 +596,7 @@ async function createPeerConnection() {
             if (remoteVideo.srcObject !== event.streams[0]) {
                 remoteVideo.srcObject = event.streams[0];
                 console.log('Uzak video akışı ayarlandı');
+                document.getElementById('waitingScreen').style.display = 'none';
             }
         };
         
@@ -595,8 +628,12 @@ async function createPeerConnection() {
         
         peerConnection.oniceconnectionstatechange = (event) => {
             console.log('ICE bağlantı durumu:', peerConnection.iceConnectionState);
+            if (peerConnection.iceConnectionState === 'failed') {
+                handleConnectionFailure();
+            }
         };
         
+        return peerConnection;
     } catch (error) {
         console.error('Peer bağlantısı oluşturma hatası:', error);
         throw error;
@@ -604,15 +641,15 @@ async function createPeerConnection() {
 }
 
 function handleConnectionFailure() {
-    // Bağlantı hatası durumunda yeniden bağlanmayı dene
     if (peerConnection) {
         peerConnection.close();
         peerConnection = null;
     }
     
+    // Bağlantıyı yeniden kurmayı dene
     setTimeout(() => {
         console.log('Yeniden bağlanmaya çalışılıyor...');
-        initWebRTC();
+        socket.connect();
     }, 2000);
 }
 
@@ -625,6 +662,11 @@ function updateWaitingScreen(participantCount) {
         waitingScreen.style.display = 'none';
     }
 }
+
+// Sayfa yüklendiğinde WebRTC'yi başlat
+document.addEventListener('DOMContentLoaded', () => {
+    initWebRTC();
+});
 
 document.getElementById('startButton').onclick = () => {
     initWebRTC();
